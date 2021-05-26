@@ -28,6 +28,6 @@ func TestEmptyState(t *testing.T) {
 
 	assert.Equal(t, f, s.forest)
 	assert.Equal(t, StatusEmpty, s.status)
-	assert.Zero(t, s.last)
-	assert.Zero(t, s.next)
+	assert.Empty(t, s.last)
+	assert.Empty(t, s.next)
 }

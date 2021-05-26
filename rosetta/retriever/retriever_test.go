@@ -757,7 +757,7 @@ func TestRetriever_Block(t *testing.T) {
 			},
 			Timestamp: testHeader.Timestamp.UnixNano() / 1_000_000,
 
-			// Limit is 2, so both transactions should be included in block.
+			// Limit is 1, so only the first transaction should be included in the block.
 			Transactions: []*object.Transaction{
 				testTransaction1,
 			},

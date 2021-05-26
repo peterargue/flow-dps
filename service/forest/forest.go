@@ -15,6 +15,8 @@
 package forest
 
 import (
+	"bytes"
+
 	"github.com/onflow/flow-go/ledger"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 	"github.com/onflow/flow-go/model/flow"
@@ -27,12 +29,12 @@ type step struct {
 }
 
 type Forest struct {
-	steps map[flow.StateCommitment]step
+	steps map[string]step
 }
 
 func New() *Forest {
 	f := Forest{
-		steps: make(map[flow.StateCommitment]step),
+		steps: make(map[string]step),
 	}
 	return &f
 }
@@ -44,16 +46,16 @@ func (f *Forest) Save(tree *trie.MTrie, paths []ledger.Path, parent flow.StateCo
 		paths:  paths,
 		parent: parent,
 	}
-	f.steps[commit] = s
+	f.steps[string(commit)] = s
 }
 
 func (f *Forest) Has(commit flow.StateCommitment) bool {
-	_, ok := f.steps[commit]
+	_, ok := f.steps[string(commit)]
 	return ok
 }
 
 func (f *Forest) Tree(commit flow.StateCommitment) (*trie.MTrie, bool) {
-	s, ok := f.steps[commit]
+	s, ok := f.steps[string(commit)]
 	if !ok {
 		return nil, false
 	}
@@ -61,7 +63,7 @@ func (f *Forest) Tree(commit flow.StateCommitment) (*trie.MTrie, bool) {
 }
 
 func (f *Forest) Paths(commit flow.StateCommitment) ([]ledger.Path, bool) {
-	s, ok := f.steps[commit]
+	s, ok := f.steps[string(commit)]
 	if !ok {
 		return nil, false
 	}
@@ -69,16 +71,16 @@ func (f *Forest) Paths(commit flow.StateCommitment) ([]ledger.Path, bool) {
 }
 
 func (f *Forest) Parent(commit flow.StateCommitment) (flow.StateCommitment, bool) {
-	s, ok := f.steps[commit]
+	s, ok := f.steps[string(commit)]
 	if !ok {
-		return flow.StateCommitment{}, false
+		return nil, false
 	}
 	return s.parent, true
 }
 
 func (f *Forest) Reset(finalized flow.StateCommitment) {
 	for commit := range f.steps {
-		if commit != finalized {
+		if !bytes.Equal(flow.StateCommitment(commit), finalized) {
 			delete(f.steps, commit)
 		}
 	}

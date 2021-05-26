@@ -99,16 +99,16 @@ func TestTransitions_BootstrapState(t *testing.T) {
 		st.forest = &mocks.Forest{
 			SaveFunc: func(tree *trie.MTrie, paths []ledger.Path, parent flow.StateCommitment) {
 				if !saveCalled {
-					assert.True(t, tree.IsEmpty())
+					assert.Empty(t, tree.AllPayloads())
 					assert.Nil(t, paths)
-					assert.Zero(t, parent)
+					assert.Empty(t, parent)
 					saveCalled = true
 					return
 				}
-				assert.False(t, tree.IsEmpty())
+				assert.NotEmpty(t, tree.AllPayloads())
 				assert.Len(t, tree.AllPayloads(), len(paths))
 				assert.Len(t, paths, 3) // Expect the three paths from leaves.
-				assert.NotZero(t, parent)
+				assert.NotEmpty(t, parent)
 			},
 		}
 
@@ -321,7 +321,7 @@ func TestTransitions_CollectRegisters(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, StatusCollected, st.status)
 		for _, wantPath := range testPaths {
-			assert.Contains(t, st.registers, wantPath)
+			assert.Contains(t, st.registers, string(wantPath))
 		}
 	})
 
@@ -383,13 +383,13 @@ func TestTransitions_IndexRegisters(t *testing.T) {
 
 		tr, st := baselineFSM(t, StatusCollected)
 		tr.index = index
-		st.registers = map[ledger.Path]*ledger.Payload{
-			testPath1: testPayload1,
-			testPath2: testPayload2,
-			testPath3: testPayload3,
-			testPath4: testPayload4,
-			testPath5: testPayload5,
-			testPath6: testPayload6,
+		st.registers = map[string]*ledger.Payload{
+			string(testPath1): testPayload1,
+			string(testPath2): testPayload2,
+			string(testPath3): testPayload3,
+			string(testPath4): testPayload4,
+			string(testPath5): testPayload5,
+			string(testPath6): testPayload6,
 		}
 
 		err := tr.IndexRegisters(st)
@@ -431,13 +431,13 @@ func TestTransitions_IndexRegisters(t *testing.T) {
 
 		tr, st := baselineFSM(t, StatusCollected)
 		tr.index = index
-		st.registers = map[ledger.Path]*ledger.Payload{
-			testPath1: testPayload1,
-			testPath2: testPayload2,
-			testPath3: testPayload3,
-			testPath4: testPayload4,
-			testPath5: testPayload5,
-			testPath6: testPayload6,
+		st.registers = map[string]*ledger.Payload{
+			string(testPath1): testPayload1,
+			string(testPath2): testPayload2,
+			string(testPath3): testPayload3,
+			string(testPath4): testPayload4,
+			string(testPath5): testPayload5,
+			string(testPath6): testPayload6,
 		}
 
 		err := tr.IndexRegisters(st)
@@ -1073,7 +1073,7 @@ func baselineFSM(t *testing.T, status Status) (*Transitions, *State) {
 		height:    testHeight,
 		last:      testLastCommit,
 		next:      testNextCommit,
-		registers: make(map[ledger.Path]*ledger.Payload),
+		registers: make(map[string]*ledger.Payload),
 		done:      doneCh,
 	}
 

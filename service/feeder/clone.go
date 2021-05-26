@@ -20,13 +20,12 @@ import (
 
 func clone(update *ledger.TrieUpdate) *ledger.TrieUpdate {
 
-	var hash ledger.RootHash
+	hash := make(ledger.RootHash, len(update.RootHash))
 	copy(hash[:], update.RootHash[:])
 
 	paths := make([]ledger.Path, 0, len(update.Paths))
 	for _, path := range update.Paths {
-		var dup ledger.Path
-		copy(dup[:], path[:])
+		dup := path.DeepCopy()
 		paths = append(paths, dup)
 	}
 

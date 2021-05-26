@@ -15,12 +15,14 @@
 package mapper
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
 	"github.com/rs/zerolog"
 
 	"github.com/onflow/flow-go/ledger"
+	"github.com/onflow/flow-go/ledger/common/pathfinder"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 	"github.com/onflow/flow-go/model/flow"
 
@@ -70,7 +72,10 @@ func (t *Transitions) BootstrapState(s *State) error {
 	// stopping point when indexing the payloads since the last finalized
 	// block. We thus introduce an empty tree, with no paths and an
 	// irrelevant previous commit.
-	empty := trie.NewEmptyMTrie()
+	empty, err := trie.NewEmptyMTrie(pathfinder.PathByteSize)
+	if err != nil {
+		return fmt.Errorf("could not create empty tree: %w", err)
+	}
 	s.forest.Save(empty, nil, flow.StateCommitment{})
 
 	// The chain indexing will forward last to next and next to current height,
@@ -187,7 +192,7 @@ func (t *Transitions) CollectRegisters(s *State) error {
 	// the forest, and we use the paths we recorded changes on to retrieve the
 	// changed payloads at each step.
 	commit := s.next
-	for commit != s.last {
+	for !bytes.Equal(commit, s.last) {
 
 		// We do this check only once, so that we don't need to do it for
 		// each item we retrieve. The tree should always be there, but we
@@ -207,12 +212,12 @@ func (t *Transitions) CollectRegisters(s *State) error {
 		tree, _ := s.forest.Tree(commit)
 		paths, _ := s.forest.Paths(commit)
 		for _, path := range paths {
-			_, ok := s.registers[path]
+			_, ok := s.registers[string(path)]
 			if ok {
 				continue
 			}
 			payloads := tree.UnsafeRead([]ledger.Path{path})
-			s.registers[path] = payloads[0]
+			s.registers[string(path)] = payloads[0]
 		}
 
 		log.Debug().Int("batch", len(paths)).Msg("collected register batch for finalized block")
@@ -256,7 +261,7 @@ func (t *Transitions) IndexRegisters(s *State) error {
 	paths := make([]ledger.Path, 0, n)
 	payloads := make([]*ledger.Payload, 0, n)
 	for path, payload := range s.registers {
-		paths = append(paths, path)
+		paths = append(paths, ledger.Path(path))
 		payloads = append(payloads, payload)
 		delete(s.registers, path)
 		if len(paths) >= n {

@@ -210,8 +210,12 @@ func TestIndex_Header(t *testing.T) {
 
 func TestIndex_Commit(t *testing.T) {
 	testHeight := uint64(42)
-	testCommit, err := flow.ToStateCommitment([]byte("07018030187ecf04945f35f1e33a89dc"))
-	require.NoError(t, err)
+	testCommit := flow.StateCommitment{
+		0x07, 0x01, 0x80, 0x30, 0x18, 0x7e, 0xef, 0x04,
+		0x94, 0x5f, 0x35, 0xf1, 0xe3, 0x3a, 0x89, 0xdc,
+		0x07, 0x01, 0x80, 0x30, 0x18, 0x7e, 0xef, 0x04,
+		0x94, 0x5f, 0x35, 0xf1, 0xe3, 0x3a, 0x89, 0xdc,
+	}
 
 	t.Run("nominal case", func(t *testing.T) {
 		t.Parallel()
@@ -296,8 +300,8 @@ func TestIndex_Values(t *testing.T) {
 			client: &apiMock{
 				GetRegisterValuesFunc: func(_ context.Context, in *GetRegisterValuesRequest, _ ...grpc.CallOption) (*GetRegisterValuesResponse, error) {
 					if assert.Len(t, in.Paths, 2) {
-						assert.Equal(t, path1[:], in.Paths[0])
-						assert.Equal(t, path2[:], in.Paths[1])
+						assert.Equal(t, []byte(path1), in.Paths[0])
+						assert.Equal(t, []byte(path2), in.Paths[1])
 					}
 					assert.Equal(t, in.Height, testHeight)
 
@@ -327,8 +331,8 @@ func TestIndex_Values(t *testing.T) {
 			client: &apiMock{
 				GetRegisterValuesFunc: func(_ context.Context, in *GetRegisterValuesRequest, _ ...grpc.CallOption) (*GetRegisterValuesResponse, error) {
 					if assert.Len(t, in.Paths, 2) {
-						assert.Equal(t, path1[:], in.Paths[0])
-						assert.Equal(t, path2[:], in.Paths[1])
+						assert.Equal(t, []byte(path1), in.Paths[0])
+						assert.Equal(t, []byte(path2), in.Paths[1])
 					}
 					assert.Equal(t, in.Height, testHeight)
 

@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/onflow/flow-go/ledger"
-	"github.com/onflow/flow-go/ledger/common/hash"
+	"github.com/onflow/flow-go/ledger/common/pathfinder"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/node"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 )
@@ -99,10 +99,10 @@ var (
 	//
 	testNode1 = node.NewLeaf(testPath1, testPayload1, 256)
 	testNode2 = node.NewLeaf(testPath2, testPayload2, 256)
-	testNode3 = node.NewNode(256, testNode1, testNode2, testPath3, testPayload3, hash.DummyHash, 64, 64)
+	testNode3 = node.NewNode(256, testNode1, testNode2, nil, testPayload3, nil, 64, 64)
 	testNode4 = node.NewLeaf(testPath4, testPayload4, 256)
-	testNode5 = node.NewNode(256, testNode4, nil, testPath5, testPayload5, hash.DummyHash, 64, 64)
-	testRoot  = node.NewNode(256, testNode3, testNode5, testPath6, testPayload6, hash.DummyHash, 64, 64)
+	testNode5 = node.NewNode(256, testNode4, nil, nil, testPayload5, nil, 64, 64)
+	testRoot  = node.NewNode(256, testNode3, testNode5, nil, testPayload6, nil, 64, 64)
 )
 
 func TestAllPaths(t *testing.T) {
@@ -135,7 +135,8 @@ func TestAllPaths(t *testing.T) {
 	t.Run("empty trie", func(t *testing.T) {
 		t.Parallel()
 
-		testTrie := trie.NewEmptyMTrie()
+		testTrie, err := trie.NewEmptyMTrie(pathfinder.PathByteSize)
+		require.NoError(t, err)
 
 		got := allPaths(testTrie)
 

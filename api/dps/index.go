@@ -93,13 +93,14 @@ func (i *Index) Commit(height uint64) (flow.StateCommitment, error) {
 	}
 	res, err := i.client.GetCommit(context.Background(), &req)
 	if err != nil {
-		return flow.StateCommitment{}, fmt.Errorf("could not get commit: %w", err)
+		return nil, fmt.Errorf("could not get commit: %w", err)
 	}
 
-	commit, err := flow.ToStateCommitment(res.Commit)
-	if err != nil {
-		return flow.StateCommitment{}, fmt.Errorf("could not convert commit: %w", err)
+	if len(res.Commit) != len(flow.ZeroID) {
+		return nil, fmt.Errorf("invalid commit length in response (have: %d, want: %d)", len(res.Commit), len(flow.ZeroID))
 	}
+
+	commit := flow.StateCommitment(res.Commit)
 
 	return commit, nil
 }

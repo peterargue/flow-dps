@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/onflow/flow-go/ledger/common/pathfinder"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/flattener"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 	"github.com/onflow/flow-go/ledger/complete/wal"
@@ -40,7 +41,11 @@ func New(options ...func(*Loader)) *Loader {
 func (l *Loader) Checkpoint() (*trie.MTrie, error) {
 
 	if l.path == "" {
-		return trie.NewEmptyMTrie(), nil
+		tree, err := trie.NewEmptyMTrie(pathfinder.PathByteSize)
+		if err != nil {
+			return nil, fmt.Errorf("could not create empty trie: %w", err)
+		}
+		return tree, nil
 	}
 
 	file, err := os.Open(l.path)

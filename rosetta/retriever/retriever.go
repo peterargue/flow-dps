@@ -17,7 +17,9 @@ package retriever
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/onflow/cadence"
@@ -197,19 +199,14 @@ func (r *Retriever) Block(id identifier.Block) (*object.Block, []identifier.Tran
 			return nil, nil, fmt.Errorf("could not convert event: %w", err)
 		}
 
-		tID := event.TransactionID.String()
-		buckets[tID] = append(buckets[tID], *op)
+		txID := event.TransactionID.String()
+		buckets[txID] = append(buckets[txID], *op)
 	}
 
 	// Iterate over all transactionIDs to create transactions with all relevant operations.
-	var blockTransactions []*object.Transaction
-	var extraTransactions []identifier.Transaction
-	var count int
+	// We first do this so we can sort transactions in the resulting slice.
+	var transactions []*object.Transaction
 	for txID, operations := range buckets {
-		if count >= int(r.cfg.TransactionLimit) {
-			extraTransactions = append(extraTransactions, identifier.Transaction{Hash: txID})
-			continue
-		}
 
 		// Set RelatedIDs for all operations for the same transaction.
 		for i := range operations {
@@ -217,7 +214,6 @@ func (r *Retriever) Block(id identifier.Block) (*object.Block, []identifier.Tran
 				if i == j {
 					continue
 				}
-
 				operations[i].RelatedIDs = append(operations[i].RelatedIDs, operations[j].ID)
 			}
 		}
@@ -226,9 +222,21 @@ func (r *Retriever) Block(id identifier.Block) (*object.Block, []identifier.Tran
 			ID:         identifier.Transaction{Hash: txID},
 			Operations: operations,
 		}
-		blockTransactions = append(blockTransactions, &transaction)
+		transactions = append(transactions, &transaction)
+	}
 
-		count++
+	sort.Slice(transactions, func(i int, j int) bool {
+		return strings.Compare(transactions[i].ID.Hash, transactions[j].ID.Hash) < 0
+	})
+	limit := r.cfg.TransactionLimit
+	if limit > uint(len(transactions)) {
+		limit = uint(len(transactions))
+	}
+	blockTransactions := transactions[:limit]
+	extraTransactions := transactions[limit:]
+	extraIdentifiers := make([]identifier.Transaction, 0, len(extraTransactions))
+	for _, transaction := range extraTransactions {
+		extraIdentifiers = append(extraIdentifiers, transaction.ID)
 	}
 
 	// We need the *uint64 for the parent block identifier.
@@ -252,7 +260,7 @@ func (r *Retriever) Block(id identifier.Block) (*object.Block, []identifier.Tran
 		Transactions: blockTransactions,
 	}
 
-	return &block, extraTransactions, nil
+	return &block, extraIdentifiers, nil
 }
 
 func (r *Retriever) Transaction(block identifier.Block, id identifier.Transaction) (*object.Transaction, error) {

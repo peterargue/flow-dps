@@ -38,7 +38,7 @@ func allPaths(tree *trie.MTrie) []ledger.Path {
 		node := queue.PopBack().(*node.Node)
 		if node.IsLeaf() {
 			path := node.Path()
-			paths = append(paths, *path)
+			paths = append(paths, path)
 			continue
 		}
 		if node.LeftChild() != nil {
@@ -54,20 +54,20 @@ func allPaths(tree *trie.MTrie) []ledger.Path {
 
 func pathsPayloads(update *ledger.TrieUpdate) ([]ledger.Path, []ledger.Payload) {
 	paths := make([]ledger.Path, 0, len(update.Paths))
-	lookup := make(map[ledger.Path]*ledger.Payload)
+	lookup := make(map[string]*ledger.Payload)
 	for i, path := range update.Paths {
-		_, ok := lookup[path]
+		_, ok := lookup[string(path)]
 		if !ok {
 			paths = append(paths, path)
 		}
-		lookup[path] = update.Payloads[i]
+		lookup[string(path)] = update.Payloads[i]
 	}
 	sort.Slice(paths, func(i, j int) bool {
 		return bytes.Compare(paths[i][:], paths[j][:]) < 0
 	})
 	payloads := make([]ledger.Payload, 0, len(paths))
 	for _, path := range paths {
-		payloads = append(payloads, *lookup[path])
+		payloads = append(payloads, *lookup[string(path)])
 	}
 	return paths, payloads
 }

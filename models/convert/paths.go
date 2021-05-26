@@ -18,14 +18,13 @@ import (
 	"fmt"
 
 	"github.com/onflow/flow-go/ledger"
+	"github.com/onflow/flow-go/ledger/common/pathfinder"
 )
 
 func PathsToBytes(paths []ledger.Path) [][]byte {
 	bb := make([][]byte, 0, len(paths))
 	for _, path := range paths {
-		b := make([]byte, len(path))
-		copy(b, path[:])
-		bb = append(bb, b)
+		bb = append(bb, path)
 	}
 	return bb
 }
@@ -33,11 +32,10 @@ func PathsToBytes(paths []ledger.Path) [][]byte {
 func BytesToPaths(bb [][]byte) ([]ledger.Path, error) {
 	paths := make([]ledger.Path, 0, len(bb))
 	for _, b := range bb {
-		path, err := ledger.ToPath(b)
-		if err != nil {
-			return nil, fmt.Errorf("could not convert path (%x): %w", b, err)
+		if len(b) != pathfinder.PathByteSize {
+			return nil, fmt.Errorf("invalid path length (have: %d, want: %d)", len(b), pathfinder.PathByteSize)
 		}
-		paths = append(paths, path)
+		paths = append(paths, b)
 	}
 	return paths, nil
 }

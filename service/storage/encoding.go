@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/onflow/flow-go/ledger"
+	"github.com/onflow/flow-go/ledger/common/pathfinder"
 	"github.com/onflow/flow-go/model/flow"
 )
 
@@ -33,9 +34,15 @@ func encodeKey(prefix uint8, segments ...interface{}) []byte {
 		case flow.Identifier:
 			val = s[:]
 		case ledger.Path:
-			val = s[:]
+			if len(s) != pathfinder.PathByteSize {
+				panic(fmt.Sprintf("invalid path length (have: %d, want: %d)", len(s), pathfinder.PathByteSize))
+			}
+			val = s
 		case flow.StateCommitment:
-			val = s[:]
+			if len(s) != len(flow.ZeroID) {
+				panic(fmt.Sprintf("invalid commit length (have: %d, want: %d)", len(s), len(flow.ZeroID)))
+			}
+			val = s
 		default:
 			panic(fmt.Sprintf("unknown type (%T)", segment))
 		}
