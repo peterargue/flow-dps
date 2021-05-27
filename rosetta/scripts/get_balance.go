@@ -23,10 +23,8 @@ import FungibleToken from 0x{{.Params.FungibleToken}}
 import {{.Token.Type}} from 0x{{.Token.Address}}
 
 pub fun main(account: Address): UFix64 {
-
-    let vaultRef = getAccount(account)
-        .getCapability({{.Token.Balance}})
-        .borrow<&{{.Token.Type}}.Vault{FungibleToken.Balance}>()
+    let acct = getAccount(account)
+    let vaultRef = acct.getCapability({{.Token.Balance}})!.borrow<&{{.Token.Type}}.Vault{FungibleToken.Balance}>()
         ?? panic("Could not borrow Balance reference to the Vault")
 
     return vaultRef.balance
