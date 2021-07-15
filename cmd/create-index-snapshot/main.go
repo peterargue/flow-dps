@@ -63,7 +63,7 @@ func run() int {
 	log = log.Level(level)
 
 	// Open the index database.
-	db, err := badger.Open(badger.DefaultOptions(flagIndex).WithReadOnly(true).WithBypassLockGuard(true))
+	db, err := badger.Open(badger.DefaultOptions(flagIndex).WithLogger(nil).WithReadOnly(true).WithBypassLockGuard(true))
 	if err != nil {
 		log.Error().Str("index", flagIndex).Err(err).Msg("could not open badger db")
 		return failure

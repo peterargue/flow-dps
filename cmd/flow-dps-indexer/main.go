@@ -128,7 +128,7 @@ func run() int {
 	}
 
 	// Open index database.
-	db, err := badger.Open(badger.DefaultOptions(flagIndex))
+	db, err := badger.Open(badger.DefaultOptions(flagIndex).WithLogger(nil))
 	if err != nil {
 		log.Error().Str("index", flagIndex).Err(err).Msg("could not open index DB")
 		return failure
@@ -136,7 +136,7 @@ func run() int {
 	defer db.Close()
 
 	// Open protocol state database.
-	data, err := badger.Open(badger.DefaultOptions(flagData))
+	data, err := badger.Open(badger.DefaultOptions(flagData).WithLogger(nil))
 	if err != nil {
 		log.Error().Err(err).Msg("could not open blockchain database")
 		return failure
