@@ -57,6 +57,8 @@ func run() int {
 
 	// Command line parameter initialization.
 	var (
+		flagBenchmark         bool
+		flagBenchmarkDuration time.Duration
 		flagCheckpoint        string
 		flagData              string
 		flagForce             bool
@@ -71,10 +73,11 @@ func run() int {
 		flagLevel             string
 		flagMetrics           bool
 		flagMetricsInterval   time.Duration
-		flagSkipBootstrap     bool
 		flagTrie              string
 	)
 
+	pflag.BoolVarP(&flagBenchmark, "benchmark", "b", false, "enable benchmark run")
+	pflag.DurationVar(&flagBenchmarkDuration, "benchmark-duration", 5*time.Minute, "defines the duration limit for the benchmark")
 	pflag.StringVarP(&flagCheckpoint, "checkpoint", "c", "", "checkpoint file for state trie")
 	pflag.StringVarP(&flagData, "data", "d", "", "database directory for protocol data")
 	pflag.BoolVarP(&flagForce, "force", "f", false, "overwrite existing index database")
@@ -88,8 +91,7 @@ func run() int {
 	pflag.BoolVar(&flagIndexTransactions, "index-transactions", false, "index transactions")
 	pflag.StringVarP(&flagLevel, "level", "l", "info", "log output level")
 	pflag.BoolVarP(&flagMetrics, "metrics", "m", false, "enable metrics collection and output")
-	pflag.DurationVar(&flagMetricsInterval, "metrics-interval", 5*time.Minute, "defines the interval of metrics output to log")
-	pflag.BoolVar(&flagSkipBootstrap, "skip-bootstrap", false, "enable skipping checkpoint register payloads indexing")
+	pflag.DurationVar(&flagMetricsInterval, "metrics-interval", 1*time.Minute, "defines the interval of metrics output to log")
 	pflag.StringVarP(&flagTrie, "trie", "t", "", "data directory for state ledger")
 
 	pflag.Parse()
@@ -126,7 +128,7 @@ func run() int {
 	}
 
 	// Open index database.
-	db, err := badger.Open(dps.DefaultOptions(flagIndex))
+	db, err := badger.Open(badger.DefaultOptions(flagIndex))
 	if err != nil {
 		log.Error().Str("index", flagIndex).Err(err).Msg("could not open index DB")
 		return failure
@@ -134,7 +136,7 @@ func run() int {
 	defer db.Close()
 
 	// Open protocol state database.
-	data, err := badger.Open(dps.DefaultOptions(flagData))
+	data, err := badger.Open(badger.DefaultOptions(flagData))
 	if err != nil {
 		log.Error().Err(err).Msg("could not open blockchain database")
 		return failure
@@ -218,7 +220,7 @@ func run() int {
 		mapper.WithIndexTransactions(flagIndexAll || flagIndexTransactions),
 		mapper.WithIndexEvents(flagIndexAll || flagIndexEvents),
 		mapper.WithIndexPayloads(flagIndexAll || flagIndexPayloads),
-		mapper.WithSkipBootstrap(flagSkipBootstrap),
+		mapper.WithSkipBootstrap(flagBenchmark),
 	)
 	forest := forest.New()
 	state := mapper.EmptyState(forest)
@@ -256,7 +258,16 @@ func run() int {
 		mout.Run()
 	}
 
+	// Enabling benchmark stop.
+	bench := make(chan struct{})
+	if flagBenchmark {
+		<-time.After(flagBenchmarkDuration)
+		close(bench)
+	}
+
 	select {
+	case <-bench:
+		log.Info().Msg("Flow DPS Indexer benchmarked")
 	case <-sig:
 		log.Info().Msg("Flow DPS Indexer stopping")
 	case <-done:
