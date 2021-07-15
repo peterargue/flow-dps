@@ -34,6 +34,7 @@ import (
 
 	api "github.com/optakt/flow-dps/api/dps"
 	"github.com/optakt/flow-dps/codec/zbor"
+	"github.com/optakt/flow-dps/models/dps"
 	"github.com/optakt/flow-dps/service/index"
 	"github.com/optakt/flow-dps/service/storage"
 )
@@ -77,7 +78,7 @@ func run() int {
 	log = log.Level(level)
 
 	// Initialize the index core state and open database in read-only mode.
-	db, err := badger.Open(badger.DefaultOptions(flagIndex).WithLogger(nil).WithReadOnly(true).WithBypassLockGuard(true))
+	db, err := badger.Open(dps.ReadOptions(flagIndex))
 	if err != nil {
 		log.Error().Str("index", flagIndex).Err(err).Msg("could not open index DB")
 		return failure

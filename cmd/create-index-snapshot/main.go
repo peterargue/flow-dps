@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/optakt/flow-dps/codec/zbor"
+	"github.com/optakt/flow-dps/models/dps"
 )
 
 const (
@@ -63,7 +64,7 @@ func run() int {
 	log = log.Level(level)
 
 	// Open the index database.
-	db, err := badger.Open(badger.DefaultOptions(flagIndex).WithLogger(nil).WithReadOnly(true).WithBypassLockGuard(true))
+	db, err := badger.Open(dps.ReadOptions(flagIndex))
 	if err != nil {
 		log.Error().Str("index", flagIndex).Err(err).Msg("could not open badger db")
 		return failure
