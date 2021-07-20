@@ -21,17 +21,27 @@ import (
 
 func DefaultOptions(dir string) badger.Options {
 	return badger.DefaultOptions(dir).
-		WithMaxTableSize(256 << 20).
-		WithValueLogFileSize(64 << 20).
-		WithTableLoadingMode(options.FileIO).
+
+		// Misc options.
+		WithLogger(nil).
+		WithCompression(options.None).
+
+		// Table options.
+		WithMaxTableSize(64 << 20).              // 64 MB
+		WithNumMemtables(5).                     // 5 * 64 = 320 MB
+		WithTableLoadingMode(options.MemoryMap). // (it's probably a factor of 10 higher: ~3.2 GB)
+
+		// Level0 options.
+		WithNumLevelZeroTables(5).       // 5 * 64 = 320 MB
+		WithNumLevelZeroTablesStall(10). // 10 * 64 = 640 MB
+		WithKeepL0InMemory(true).        // (it's probably a factor of 10 higher: ~6.4 GB)
+
+		// Value log options.
 		WithValueLogLoadingMode(options.FileIO).
-		WithNumMemtables(1).
-		WithKeepL0InMemory(false).
-		WithCompactL0OnClose(false).
-		WithNumLevelZeroTables(1).
-		WithNumLevelZeroTablesStall(2).
-		WithLoadBloomsOnOpen(false).
-		WithIndexCacheSize(2000 << 20).
-		WithBlockCacheSize(0).
-		WithLogger(nil)
+		WithIndexCacheSize(2000 << 20). // 2 GB (we don't want to keep it all in-memory)
+		WithBlockCacheSize(0).          // 0 GB
+
+		// Startup and shutdown options.
+		WithCompactL0OnClose(true).
+		WithLoadBloomsOnOpen(false)
 }
