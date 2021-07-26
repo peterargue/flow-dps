@@ -27,18 +27,26 @@ import (
 	"github.com/optakt/flow-dps/rosetta/identifier"
 )
 
+// SubmitRequest implements the request schema for /construction/submit.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#request-7
 type SubmitRequest struct {
 	NetworkID         identifier.Network `json:"network_identifier"`
 	SignedTransaction string             `json:"signed_transaction"`
 }
 
+// SubmitResponse implements the response schema for /construction/submit.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#response-7
 type SubmitResponse struct {
 	TransactionID identifier.Transaction `json:"transaction_identifier"`
 }
 
+// Submit implements the /construction/submit endpoint of the Rosetta Construction API.
+// Submit endpoint receives the fully constructed, signed transaction and submits it
+// for execution to the Flow network using the SendTransaction API call of the Flow Access API.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#constructionsubmit
 func (c *Construction) Submit(ctx echo.Context) error {
 
-	var req HashRequest
+	var req SubmitRequest
 	err := ctx.Bind(&req)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, invalidEncoding(invalidJSON, err))

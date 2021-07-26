@@ -27,18 +27,27 @@ import (
 	"github.com/optakt/flow-dps/rosetta/object"
 )
 
+// ParseRequest implements the request schema for /construction/parse.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#request-4
 type ParseRequest struct {
 	NetworkID   identifier.Network `json:"network_identifier"`
 	Signed      bool               `json:"signed"`
 	Transaction string             `json:"transaction"`
 }
 
+// ParseResponse implements the response schema for /construction/parse.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#response-4
 type ParseResponse struct {
 	Operations []object.Operation   `json:"operations"`
-	SignerIDs  []identifier.Account `json:"account_identifier_signers"`
-	Metadata   object.Metadata      `json:"metadata"`
+	SignerIDs  []identifier.Account `json:"account_identifier_signers,omitempty"`
+	Metadata   object.Metadata      `json:"metadata,omitempty"`
 }
 
+// Parse implements the /construction/parse endpoint of the Rosetta Construction API.
+// Parse endpoint parses both signed and unsigned transactions to understand the
+// transaction's intent. Endpoint returns the list of operations, any relevant metadata,
+// and, in the case of signed transaction, the list of signers.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#constructionparse
 func (c *Construction) Parse(ctx echo.Context) error {
 
 	var req ParseRequest

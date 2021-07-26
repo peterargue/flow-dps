@@ -27,16 +27,24 @@ import (
 	"github.com/optakt/flow-dps/rosetta/object"
 )
 
+// CombineRequest implements the request schema for /construction/combine.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#request
 type CombineRequest struct {
 	NetworkID           identifier.Network `json:"network_identifier"`
 	UnsignedTransaction string             `json:"unsigned_transaction"`
 	Signatures          []object.Signature `json:"signatures"`
 }
 
+// CombineResponse implements the response schema for /construction/combine.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#response
 type CombineResponse struct {
 	SignedTransaction string `json:"signed_transaction"`
 }
 
+// Combine implements the /construction/combine endpoint of the Rosetta Construction API.
+// Combine endpoint creates a signed transaction by combining an unsigned transaction and
+// a list of signatures.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#constructioncombine
 func (c *Construction) Combine(ctx echo.Context) error {
 
 	var req CombineRequest
@@ -82,7 +90,10 @@ func (c *Construction) Combine(ctx echo.Context) error {
 
 		// Since we're treating the sender as also the payer and the proposer,
 		// we only need to sign the transaction envelope.
-		// TODO: adjust the code so that we can use different (or multiple) key IDs.
+
+		// TODO: We can have multiple keys and signatures for a single account.
+		// However, in order to add multiple signatures, we need to know the key
+		// index for each individual signature.
 		signer := flow.HexToAddress(sig.SigningPayload.AccountID.Address)
 		tx = tx.AddEnvelopeSignature(signer, 0, []byte(sig.HexBytes))
 	}

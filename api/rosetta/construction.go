@@ -15,6 +15,7 @@
 package rosetta
 
 const (
+	// FlowSignatureAlgorithm denotes the signing algorithm supported by Flow.
 	FlowSignatureAlgorithm = "ecdsa"
 )
 

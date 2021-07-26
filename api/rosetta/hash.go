@@ -26,15 +26,22 @@ import (
 	"github.com/optakt/flow-dps/rosetta/identifier"
 )
 
+// HashRequest implements the request schema for /construction/hash.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#request-2
 type HashRequest struct {
 	NetworkID         identifier.Network `json:"network_identifier"`
 	SignedTransaction string             `json:"signed_transaction"`
 }
 
+// HashResponse implements the response schema for /construction/hash.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#response-2
 type HashResponse struct {
 	TransactionID identifier.Transaction `json:"transaction_identifier"`
 }
 
+// Hash implements the /construction/hash endpoint of the Rosetta Construction API.
+// Hash endpoint returns the transaction ID of a signed transaction.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#constructionhash
 func (c *Construction) Hash(ctx echo.Context) error {
 
 	var req HashRequest
