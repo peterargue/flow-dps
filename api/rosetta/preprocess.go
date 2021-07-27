@@ -25,15 +25,25 @@ import (
 	"github.com/optakt/flow-dps/rosetta/object"
 )
 
+// PreprocessRequest implements the request schema for /construction/preprocess.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#request-6
 type PreprocessRequest struct {
 	NetworkID  identifier.Network `json:"network_identifier"`
 	Operations []object.Operation `json:"operations"`
 }
 
+// PreprocessResponse implements the response schema for /construction/preprocess.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#response-6
 type PreprocessResponse struct {
 	object.Options `json:"options,omitempty"`
 }
 
+// Preprocess implements the /construction/preprocess endpoint of the Rosetta Construction API.
+// Preprocess receives a list of operations that should deterministically specify the
+// intent of the transaction. Preprocess endpoint returns the `options` object that
+// will be sent **unmodified** to /construction/metadata, effectively creating the metadata
+// request.
+// See https://www.rosetta-api.org/docs/ConstructionApi.html#constructionpreprocess
 func (c *Construction) Preprocess(ctx echo.Context) error {
 
 	var req PreprocessRequest
