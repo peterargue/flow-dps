@@ -19,18 +19,19 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"testing"
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
-	"github.com/prometheus/tsdb/wal"
+	pwal "github.com/prometheus/tsdb/wal"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 
+	"github.com/optakt/flow-dps/bucket"
 	"github.com/optakt/flow-dps/codec/zbor"
 	"github.com/optakt/flow-dps/metrics/output"
 	"github.com/optakt/flow-dps/metrics/rcrowley"
 	"github.com/optakt/flow-dps/models/dps"
-	"github.com/optakt/flow-dps/service/chain"
 	"github.com/optakt/flow-dps/service/feeder"
 	"github.com/optakt/flow-dps/service/forest"
 	"github.com/optakt/flow-dps/service/index"
@@ -38,6 +39,7 @@ import (
 	"github.com/optakt/flow-dps/service/mapper"
 	"github.com/optakt/flow-dps/service/metrics"
 	"github.com/optakt/flow-dps/service/storage"
+	"github.com/optakt/flow-dps/testing/mocks"
 )
 
 const (
@@ -57,29 +59,31 @@ func run() int {
 
 	// Command line parameter initialization.
 	var (
+		flagBucket            string
 		flagCheckpoint        string
-		flagData              string
+		flagDownloadDir       string
 		flagForce             bool
 		flagIndex             string
 		flagIndexAll          bool
 		flagIndexCollections  bool
-		flagIndexGuarantees   bool
 		flagIndexCommit       bool
 		flagIndexEvents       bool
+		flagIndexGuarantees   bool
 		flagIndexHeader       bool
 		flagIndexPayloads     bool
 		flagIndexResults      bool
-		flagIndexTransactions bool
 		flagIndexSeals        bool
+		flagIndexTransactions bool
 		flagLevel             string
 		flagMetrics           bool
 		flagMetricsInterval   time.Duration
+		flagRegion            string
 		flagSkipBootstrap     bool
-		flagTrie              string
 	)
 
+	pflag.StringVarP(&flagBucket, "bucket", "b", "", "name of the S3 bucket which contains the state ledger")
 	pflag.StringVarP(&flagCheckpoint, "checkpoint", "c", "", "checkpoint file for state trie")
-	pflag.StringVarP(&flagData, "data", "d", "", "database directory for protocol data")
+	pflag.StringVarP(&flagDownloadDir, "download-directory", "d", "", "directory where to download ledger WAL checkpoints")
 	pflag.BoolVarP(&flagForce, "force", "f", false, "overwrite existing index database")
 	pflag.StringVarP(&flagIndex, "index", "i", "index", "database directory for state index")
 	pflag.BoolVarP(&flagIndexAll, "index-all", "a", false, "index everything")
@@ -95,8 +99,8 @@ func run() int {
 	pflag.StringVarP(&flagLevel, "level", "l", "info", "log output level")
 	pflag.BoolVarP(&flagMetrics, "metrics", "m", false, "enable metrics collection and output")
 	pflag.DurationVar(&flagMetricsInterval, "metrics-interval", 5*time.Minute, "defines the interval of metrics output to log")
+	pflag.StringVarP(&flagRegion, "region", "r", "", "region in which the S3 bucket is available")
 	pflag.BoolVar(&flagSkipBootstrap, "skip-bootstrap", false, "enable skipping checkpoint register payloads indexing")
-	pflag.StringVarP(&flagTrie, "trie", "t", "", "data directory for state ledger")
 
 	pflag.Parse()
 
@@ -139,14 +143,6 @@ func run() int {
 	}
 	defer db.Close()
 
-	// Open protocol state database.
-	data, err := badger.Open(dps.DefaultOptions(flagData))
-	if err != nil {
-		log.Error().Err(err).Msg("could not open blockchain database")
-		return failure
-	}
-	defer data.Close()
-
 	// We initialize a metrics logger regardless of whether metrics are enabled;
 	// it will just do nothing if there are no registered metrics.
 	mout := output.New(log, flagMetricsInterval)
@@ -180,22 +176,25 @@ func run() int {
 		loader.WithCheckpointPath(flagCheckpoint),
 	)
 
-	// The chain is responsible for reading blockchain data from the protocol state.
-	var disk dps.Chain
-	disk = chain.FromDisk(data)
-	if flagMetrics {
-		time := rcrowley.NewTime("read")
-		mout.Register(time)
-		disk = metrics.NewChain(disk, time)
-	}
+	// TODO: Implement follower engine stuff here instead of the mock chain.
+	// FIXME: Temporary.
+	chain := mocks.BaselineChain(&testing.T{})
 
-	// Feeder is responsible for reading the write-ahead log of the execution state.
-	segments, err := wal.NewSegmentsReader(flagTrie)
+	downloader, err := bucket.NewDownloader(log, flagRegion, flagBucket)
 	if err != nil {
-		log.Error().Str("trie", flagTrie).Err(err).Msg("could not open segments reader")
+		log.Error().
+			Err(err).
+			Str("bucket", flagBucket).
+			Str("region", flagRegion).
+			Msg("could not create S3 bucket downloader")
 		return failure
 	}
-	feed := feeder.FromReader(wal.NewReader(segments))
+
+	// FIXME: Will panic if it tries to log with the nil logger we're giving it.
+	walReader := pwal.NewLiveReader(nil, downloader)
+
+	// Feeder is responsible for reading the write-ahead log of the execution state.
+	feed := feeder.FromReader(walReader)
 
 	// Writer is responsible for writing the index data to the index database.
 	index := index.NewWriter(db, storage)
@@ -213,7 +212,7 @@ func run() int {
 	}
 
 	// Initialize the transitions with the dependencies and add them to the FSM.
-	transitions := mapper.NewTransitions(log, load, disk, feed, write,
+	transitions := mapper.NewTransitions(log, load, chain, feed, write,
 		mapper.WithIndexCommit(flagIndexAll || flagIndexCommit),
 		mapper.WithIndexHeader(flagIndexAll || flagIndexHeader),
 		mapper.WithIndexCollections(flagIndexAll || flagIndexCollections),
@@ -256,6 +255,10 @@ func run() int {
 		log.Info().Time("finish", finish).Str("duration", duration.Round(time.Second).String()).Msg("Flow DPS Indexer stopped")
 	}()
 
+	go func() {
+		downloader.Run()
+	}()
+
 	// Start metrics output.
 	if flagMetrics {
 		mout.Run()
@@ -290,6 +293,11 @@ func run() int {
 	err = fsm.Stop(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("could not stop indexer")
+		return failure
+	}
+	err = downloader.Stop(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("could not stop S3 bucket downloader")
 		return failure
 	}
 
