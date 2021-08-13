@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/optakt/flow-dps/models/dps"
 	"github.com/rs/zerolog"
 )
 
@@ -48,9 +49,10 @@ type Downloader struct {
 	// the index of the next segment to retrieve.
 	index int
 
-	wg     sync.WaitGroup
-	readCh chan struct{}
-	stopCh chan struct{}
+	wg      sync.WaitGroup
+	stopCh  chan struct{}
+	readCh  chan struct{}
+	writeCh chan struct{}
 }
 
 // NewDownloader creates a new AWS S3 session for downloading and returns a Downloader instance that uses it.
@@ -73,65 +75,29 @@ func NewDownloader(logger zerolog.Logger, region, bucket string) (*Downloader, e
 		buffer:     &aws.WriteAtBuffer{},
 		stopCh:     make(chan struct{}),
 		readCh:     make(chan struct{}),
+		writeCh:    make(chan struct{}),
 	}
 
 	return &d, nil
 }
 
-// Read reads into the given byte slice as long as it has available bytes to read from the segments that have been
-// downloaded.
-// FIXME: Make this non-blocking and timeout after a while, returning an io.EOF error for the LiveReader. That might
-// 		  trigger a corruption error on the Prometheus Live Reader side, which would not be great. Need to look into it.
-func (d *Downloader) Read(p []byte) (int, error) {
-	// If we don't have a segment yet, wait until one is available.
-	for len(d.segment) == 0 {
-		// Check if we should stop.
-		select {
-		case <-d.stopCh:
-			return 0, nil
-		default:
-		}
-
-		time.Sleep(1 * time.Second)
-		d.segment = d.buffer.Bytes()
+// Next reads and returns the contents of the next available segment.
+func (d *Downloader) Next() ([]byte, error) {
+	select {
+	case <-d.writeCh:
+		// Proceed with reading the file.
+	case <-time.After(5 * time.Second):
+		// Time out, since no file is available at the moment.
+		return nil, dps.ErrTimeout
 	}
 
-	// If the requested bytes to read is greater than the available number of bytes,
-	// only read what is available for now.
-	// TODO: Could be improved by appending the next segment instead of resetting the buffer whenever we reach the end,
-	//		 but this is not necessary since the LiveReader handles incomplete reads with its `permissive` attribute and
-	//		 could also be problematic depending on how the S3 SDK writes on the buffer with WriteAt. We might confuse its
-	//       index my dynamically truncating the buffer it's writing in.
-	//       See https://github.com/prometheus/prometheus/blob/main/tsdb/wal/live_reader.go#L59-L61
-	n := min(len(p), len(d.segment))
-
-	// Pick only the requested length of bytes.
-	readBytes := d.segment[:n]
-
-	// Remove those bytes from the buffer.
-	d.segment = d.segment[n:]
-
-	// Reset the buffer if it has been read completely.
-	if len(d.segment) == 0 {
-		d.buffer = &aws.WriteAtBuffer{}
-	}
-
-	// Increase index to make the `Run` routine retrieve the next segment.
-	d.index++
-
-	// Check if readCh is still open. If it has been closed, the downloader is stopping
-	// and thus we should just return asap.
-	_, ok := <-d.readCh
-	if !ok {
-		return 0, nil
-	}
-
-	// Notify the `Run` routine that it can retrieve the next segment now.
+	// Copy the contents of the current buffer, reset it and let the reading
+	// goroutine know that it can write over it again.
+	data := d.buffer.Bytes()
+	d.buffer = &aws.WriteAtBuffer{}
 	d.readCh <- struct{}{}
 
-	copy(p, readBytes)
-
-	return n, nil
+	return data, nil
 }
 
 // Run is designed to run in the background and download the next segment whenever one has been fully read.
@@ -197,7 +163,11 @@ func (d *Downloader) Run() {
 				Int64("download_bytes", totalDownloadedBytes).
 				Msg("successfully downloaded segment from bucket")
 
-			// Wait until segment has been read by the feeder before downloading the next one.
+			// Notify that the buffer is ready to be read.
+			d.writeCh <- struct{}{}
+
+			// Wait until buffer has been read and reset by the feeder before
+			// downloading the next one.
 			<-d.readCh
 		}
 	}
@@ -209,12 +179,4 @@ func (d *Downloader) Stop(ctx context.Context) error {
 	close(d.readCh)
 	d.wg.Wait()
 	return nil
-}
-
-// TODO: Remove this once generics are there and math.Min handles integers generically.
-func min(i, j int) int {
-	if i < j {
-		return i
-	}
-	return j
 }

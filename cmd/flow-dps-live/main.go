@@ -23,23 +23,27 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/v2"
-	pwal "github.com/prometheus/tsdb/wal"
+	"github.com/optakt/flow-dps/testing/mocks"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 
+	"github.com/onflow/flow-go/follower"
+	"github.com/onflow/flow-go/model/flow"
+
 	"github.com/optakt/flow-dps/bucket"
 	"github.com/optakt/flow-dps/codec/zbor"
+	"github.com/optakt/flow-dps/follower/consensus"
+	"github.com/optakt/flow-dps/follower/execution"
 	"github.com/optakt/flow-dps/metrics/output"
 	"github.com/optakt/flow-dps/metrics/rcrowley"
 	"github.com/optakt/flow-dps/models/dps"
-	"github.com/optakt/flow-dps/service/feeder"
+	"github.com/optakt/flow-dps/service/chain"
 	"github.com/optakt/flow-dps/service/forest"
 	"github.com/optakt/flow-dps/service/index"
 	"github.com/optakt/flow-dps/service/loader"
 	"github.com/optakt/flow-dps/service/mapper"
 	"github.com/optakt/flow-dps/service/metrics"
 	"github.com/optakt/flow-dps/service/storage"
-	"github.com/optakt/flow-dps/testing/mocks"
 )
 
 const (
@@ -59,8 +63,11 @@ func run() int {
 
 	// Command line parameter initialization.
 	var (
+		flagAccessID          string
+		flagBindAddr          string
 		flagBucket            string
 		flagCheckpoint        string
+		flagData              string
 		flagDownloadDir       string
 		flagForce             bool
 		flagIndex             string
@@ -77,11 +84,15 @@ func run() int {
 		flagLevel             string
 		flagMetrics           bool
 		flagMetricsInterval   time.Duration
+		flagNodeID            string
 		flagRegion            string
 		flagSkipBootstrap     bool
 	)
 
+	pflag.StringVar(&flagAccessID, "access-id", "", "id of the access node to connect to")
 	pflag.StringVarP(&flagBucket, "bucket", "b", "", "name of the S3 bucket which contains the state ledger")
+	pflag.StringVar(&flagBindAddr, "bind-addr", "127.0.0.1:FIXME", "address on which to bind the FIXME")
+	pflag.StringVarP(&flagData, "data", "d", "", "database directory for protocol data")
 	pflag.StringVarP(&flagCheckpoint, "checkpoint", "c", "", "checkpoint file for state trie")
 	pflag.StringVarP(&flagDownloadDir, "download-directory", "d", "", "directory where to download ledger WAL checkpoints")
 	pflag.BoolVarP(&flagForce, "force", "f", false, "overwrite existing index database")
@@ -99,6 +110,7 @@ func run() int {
 	pflag.StringVarP(&flagLevel, "level", "l", "info", "log output level")
 	pflag.BoolVarP(&flagMetrics, "metrics", "m", false, "enable metrics collection and output")
 	pflag.DurationVar(&flagMetricsInterval, "metrics-interval", 5*time.Minute, "defines the interval of metrics output to log")
+	pflag.StringVarP(&flagNodeID, "node-id", "n", "", "node id to use for the DPS")
 	pflag.StringVarP(&flagRegion, "region", "r", "", "region in which the S3 bucket is available")
 	pflag.BoolVar(&flagSkipBootstrap, "skip-bootstrap", false, "enable skipping checkpoint register payloads indexing")
 
@@ -143,6 +155,14 @@ func run() int {
 	}
 	defer db.Close()
 
+	// Open protocol state database.
+	data, err := badger.Open(dps.DefaultOptions(flagData))
+	if err != nil {
+		log.Error().Err(err).Msg("could not open blockchain database")
+		return failure
+	}
+	defer data.Close()
+
 	// We initialize a metrics logger regardless of whether metrics are enabled;
 	// it will just do nothing if there are no registered metrics.
 	mout := output.New(log, flagMetricsInterval)
@@ -176,9 +196,17 @@ func run() int {
 		loader.WithCheckpointPath(flagCheckpoint),
 	)
 
-	// TODO: Implement follower engine stuff here instead of the mock chain.
-	// FIXME: Temporary.
-	chain := mocks.BaselineChain(&testing.T{})
+	nodeID, err := flow.HexStringToIdentifier(flagNodeID)
+	if err != nil {
+		log.Error().Err(err).Msg("invalid node ID")
+		return failure
+	}
+
+	accessNodeID, err := flow.HexStringToIdentifier(flagAccessID)
+	if err != nil {
+		log.Error().Err(err).Msg("invalid access node ID")
+		return failure
+	}
 
 	downloader, err := bucket.NewDownloader(log, flagRegion, flagBucket)
 	if err != nil {
@@ -190,11 +218,13 @@ func run() int {
 		return failure
 	}
 
-	// FIXME: Will panic if it tries to log with the nil logger we're giving it.
-	walReader := pwal.NewLiveReader(nil, downloader)
+	follower := follower.NewConsensusFollower(nodeID, accessNodeID, flagBindAddr, follower.WithDataDir(flagData))
+	consensus := consensus.New(log, follower, data)
+	execution := execution.New(log, downloader, data)
+	chain := chain.FromFollowers(log, execution, data)
 
-	// Feeder is responsible for reading the write-ahead log of the execution state.
-	feed := feeder.FromReader(walReader)
+	// FIXME: Replace with a real feeder.
+	feed := mocks.BaselineFeeder(&testing.T{})
 
 	// Writer is responsible for writing the index data to the index database.
 	index := index.NewWriter(db, storage)

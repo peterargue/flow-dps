@@ -18,8 +18,8 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/klauspost/compress v1.12.2
 	github.com/labstack/echo/v4 v4.3.0
-	github.com/onflow/cadence v0.16.1
-	github.com/onflow/flow-go v0.17.6
+	github.com/onflow/cadence v0.18.1-0.20210729032058-d9eb6683d6ed
+	github.com/onflow/flow-go v0.19.0-rc2.0.20210812104132-c5109dd15516
 	github.com/onflow/flow/protobuf/go/flow v0.2.0
 	github.com/prometheus/tsdb v0.7.1
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
