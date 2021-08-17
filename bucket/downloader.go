@@ -28,6 +28,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// FIXME: Switch to GCP bucket.
+
 type Downloader struct {
 	logger zerolog.Logger
 

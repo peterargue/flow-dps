@@ -61,3 +61,9 @@ func (f *Follower) OnBlockFinalized(finalizedBlockID flow.Identifier) {
 func (f *Follower) Height() uint64 {
 	return f.height
 }
+
+// FIXME: Add BlockID method to show latest block ID.
+
+// FIXME: Document in this file the indexes that are automatically written by
+//  the follower. Only the ones that we use though, as the maintenance effort
+//  would not be worth it otherwise.

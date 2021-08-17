@@ -29,15 +29,19 @@ type blockReader interface {
 	Next() ([]byte, error)
 }
 
+type consensusFollower interface {
+	Height() uint64
+}
+
 type Follower struct {
 	log zerolog.Logger
 
-	codec  zbor.Codec
-	db     *badger.DB
-	blocks blockReader
+	consensus consensusFollower
+	codec     zbor.Codec
+	db        *badger.DB
+	blocks    blockReader
 
-	block  BlockData
-	height uint64
+	block BlockData
 }
 
 func New(log zerolog.Logger, blocks blockReader, db *badger.DB) *Follower {
@@ -46,14 +50,16 @@ func New(log zerolog.Logger, blocks blockReader, db *badger.DB) *Follower {
 
 		blocks: blocks,
 		db:     db,
-		height: math.MaxUint64,
 	}
 
 	return &f
 }
 
 func (f *Follower) Height() uint64 {
-	return f.height
+	if f.block.Block != nil {
+		return f.block.Block.Header.Height
+	}
+	return math.MaxUint64
 }
 
 func (f *Follower) Update() (*ledger.TrieUpdate, error) {
@@ -72,8 +78,19 @@ func (f *Follower) Update() (*ledger.TrieUpdate, error) {
 }
 
 // FIXME: How to know for sure that everything has been read before calling Next?
+// FIXME: Only index once the block is finalized (height is available in the consensus follower)
 
 func (f *Follower) Next() error {
+	// Do not advance unless the consensus moved forward.
+	if f.consensus.Height() == f.Height() {
+		return nil
+	}
+
+	// FIXME: Change f.blocks to download a specific block by BlockID, the one
+	// that the consensus got.
+
+	// FIXME: Make the consensus follower return the latest blockID.
+
 	b, err := f.blocks.Next()
 	if err != nil {
 		return fmt.Errorf("could not retrieve block: %w", err)
@@ -84,7 +101,17 @@ func (f *Follower) Next() error {
 		return fmt.Errorf("could not unmarshal block: %w", err)
 	}
 
-	// FIXME: Index everything that is needed.
+	// if f.block.Block.ID() == blockID {
+	// 	break
+	// }
+	//
+	// err = f.IndexAll()
+	// if err != nil {
+	// 	return fmt.Errorf("could not index execution state data: %w", err)
+	// }
 
 	return nil
+}
+
+func (f *Follower) IndexAll() {
 }
