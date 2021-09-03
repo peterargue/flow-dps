@@ -24,7 +24,11 @@ import (
 	"time"
 
 	"github.com/c2h5oh/datasize"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/labstack/echo/v4"
+	modelindex "github.com/optakt/flow-dps/models/index"
+	serviceindex "github.com/optakt/flow-dps/service/index"
+	"github.com/optakt/flow-dps/service/storage"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 	"github.com/ziflex/lecho/v2"
@@ -67,6 +71,7 @@ func run() int {
 		flagLevel        string
 		flagPort         uint16
 		flagTransactions uint
+		flagIndex        string
 	)
 
 	pflag.StringVarP(&flagAPI, "api", "a", "127.0.0.1:5005", "host URL for GRPC API endpoint")
@@ -75,6 +80,7 @@ func run() int {
 	pflag.StringVarP(&flagLevel, "level", "l", "info", "log output level")
 	pflag.Uint16VarP(&flagPort, "port", "p", 8080, "port to host Rosetta API on")
 	pflag.UintVarP(&flagTransactions, "transaction-limit", "t", 200, "maximum amount of transactions to include in a block response")
+	pflag.StringVarP(&flagIndex, "index", "i", "", "database directory for state index (disables GRPC API if specified)")
 
 	pflag.Parse()
 
@@ -111,9 +117,35 @@ func run() int {
 		return failure
 	}
 
+	var index modelindex.Reader
+
 	// Rosetta API initialization.
-	client := api.NewAPIClient(conn)
-	index := api.IndexFromAPI(client, codec)
+	if flagIndex != "" {
+		db, err := badger.Open(dps.DefaultOptions(flagIndex))
+		if err != nil {
+			log.Error().Str("index", flagIndex).Err(err).Msg("could not open index DB")
+			return failure
+		}
+		defer db.Close()
+
+		library := storage.New(codec)
+
+		index = serviceindex.NewReader(db, library)
+	} else {
+
+		// Initialize the API client.
+		conn, err := grpc.Dial(flagAPI, grpc.WithInsecure())
+		if err != nil {
+			log.Error().Str("api", flagAPI).Err(err).Msg("could not dial API host")
+			return failure
+		}
+		defer conn.Close()
+
+		client := api.NewAPIClient(conn)
+		index = api.IndexFromAPI(client, codec)
+	}
+
+	// Rosetta API initialization.
 	config := configuration.New(params.ChainID)
 	validate := validator.New(params, index)
 	generate := scripts.NewGenerator(params)
