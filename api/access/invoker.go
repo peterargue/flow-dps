@@ -1,4 +1,4 @@
-// Copyright 2021 Alvalor S.A.
+// Copyright 2021 Optakt Labs OÜ
 //
 // Licensed under the Apache License, Version 2.0 (the "License"); you may not
 // use this file except in compliance with the License. You may obtain a copy of
@@ -12,19 +12,14 @@
 // License for the specific language governing permissions and limitations under
 // the License.
 
-package index
+package access
 
 import (
-	"github.com/onflow/flow-go/ledger"
+	"github.com/onflow/cadence"
 	"github.com/onflow/flow-go/model/flow"
 )
 
-type Reader interface {
-	First() (uint64, error)
-	Last() (uint64, error)
-	Header(height uint64) (*flow.Header, error)
-	Commit(height uint64) (flow.StateCommitment, error)
-	Events(height uint64, types ...flow.EventType) ([]flow.Event, error)
-	Registers(height uint64, paths []ledger.Path) ([]ledger.Value, error)
-	HeightForBlock(blockID flow.Identifier) (interface{}, interface{})
+type Invoker interface {
+	Account(height uint64, address flow.Address) (*flow.Account, error)
+	Script(height uint64, script []byte, parameters []cadence.Value) (cadence.Value, error)
 }
