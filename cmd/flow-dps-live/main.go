@@ -33,6 +33,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tags"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 
 	sdk "github.com/onflow/flow-go-sdk/crypto"
@@ -143,16 +144,16 @@ func run() int {
 	// Initialize the index reader and check whether there is already an index
 	// in the database at the provided index database directory.
 	read := index.NewReader(db, storage)
-	_, err = read.First()
-	if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
-		log.Error().Err(err).Msg("could not get first height from index reader")
-		return failure
-	}
-	indexExists := err == nil
-	if indexExists && !flagForce {
-		log.Error().Err(err).Msg("index already exists, manually delete it or use (-f, --force) to overwrite it")
-		return failure
-	}
+	//_, err = read.First()
+	//if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
+	//	log.Error().Err(err).Msg("could not get first height from index reader")
+	//	return failure
+	//}
+	//indexExists := err == nil
+	//if indexExists && !flagForce {
+	//	log.Error().Err(err).Msg("index already exists, manually delete it or use (-f, --force) to overwrite it")
+	//	return failure
+	//}
 
 	// Initialize the loader component, which is responsible for loading,
 	// decoding and providing indexing for the root checkpoint.
@@ -162,7 +163,7 @@ func run() int {
 
 	// Initialize the execution follower that will read block records from the
 	// Google Cloud Platform bucket.
-	client, err := googlecloud.NewClient(context.Background())
+	client, err := googlecloud.NewClient(context.Background(), option.WithoutAuthentication())
 	if err != nil {
 		log.Error().Err(err).Msg("could not connect GCP client")
 		return failure
@@ -230,7 +231,7 @@ func run() int {
 		// FIXME: We can uncomment this once the PR is merged to inject the
 		// protocol state database is merged:
 		// => https://github.com/onflow/flow-go/pull/1228
-		// unstaked.WithDB(db),
+		unstaked.WithDB(data),
 	)
 	if err != nil {
 		log.Error().Err(err).Str("bucket", flagBucket).Msg("could not create consensus follower")
@@ -298,6 +299,17 @@ func run() int {
 	}
 	done := make(chan struct{})
 	failed := make(chan struct{})
+
+	go func() {
+		start := time.Now()
+		log.Info().Time("start", start).Msg("Consensus follower starting")
+
+		follow.Run(context.Background())
+	}()
+
+	// wait for consensus follower to init
+	<-follow.NodeBuilder.Ready()
+
 	go func() {
 		start := time.Now()
 		log.Info().Time("start", start).Msg("Flow DPS Live Indexer starting")
