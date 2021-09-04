@@ -84,6 +84,10 @@ func (g *GCPStreamer) poll() {
 	}
 }
 
+func (g *GCPStreamer) Pull() error {
+	return g.pull()
+}
+
 func (g *GCPStreamer) pull() error {
 
 	g.log.Debug().Msg("Pulling GCP")

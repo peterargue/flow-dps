@@ -312,6 +312,13 @@ func run() int {
 	// wait for consensus follower to init
 	<-follow.NodeBuilder.Ready()
 
+	log.Debug().Msg("Initial stream pull")
+	err = stream.Pull()
+	if err != nil {
+		log.Error().Str("address", flagAddress).Err(err).Msg("initial stream pull failed")
+		return failure
+	}
+
 	rootHeight, err := consensus.Root()
 	if err != nil {
 		log.Error().Err(err).Msg("could find root height")
