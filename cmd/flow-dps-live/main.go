@@ -144,16 +144,16 @@ func run() int {
 	// Initialize the index reader and check whether there is already an index
 	// in the database at the provided index database directory.
 	read := index.NewReader(db, storage)
-	//_, err = read.First()
-	//if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
-	//	log.Error().Err(err).Msg("could not get first height from index reader")
-	//	return failure
-	//}
-	//indexExists := err == nil
-	//if indexExists && !flagForce {
-	//	log.Error().Err(err).Msg("index already exists, manually delete it or use (-f, --force) to overwrite it")
-	//	return failure
-	//}
+	_, err = read.First()
+	if err != nil && !errors.Is(err, badger.ErrKeyNotFound) {
+		log.Error().Err(err).Msg("could not get first height from index reader")
+		return failure
+	}
+	indexExists := err == nil
+	if indexExists && !flagForce {
+		log.Error().Err(err).Msg("index already exists, manually delete it or use (-f, --force) to overwrite it")
+		return failure
+	}
 
 	// Initialize the loader component, which is responsible for loading,
 	// decoding and providing indexing for the root checkpoint.
@@ -309,6 +309,10 @@ func run() int {
 
 	// wait for consensus follower to init
 	<-follow.NodeBuilder.Ready()
+
+	root, err := consensus.Root()
+	rootBlock, err := consensus.Header(root)
+	consensus.OnBlockFinalized(rootBlock.ID())
 
 	go func() {
 		start := time.Now()
