@@ -250,6 +250,8 @@ func (c *Consensus) indexPayload(finalID flow.Identifier) error {
 		Seals:      seals,
 	}
 
+	c.log.Debug().Uint64("block_height", header.Height).Msg("Indexed payload")
+
 	c.payloads[header.Height] = &payload
 
 	return nil
