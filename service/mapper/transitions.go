@@ -89,6 +89,7 @@ func (t *Transitions) BootstrapState(s *State) error {
 	if err != nil {
 		return fmt.Errorf("could not get root height: %w", err)
 	}
+	t.log.Debug().Msgf("Bootstrapping with height: %d", height)
 	s.height = height
 
 	// Next, we will load our checkpoint tree and add it as the step
