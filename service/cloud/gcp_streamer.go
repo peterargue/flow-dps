@@ -59,6 +59,7 @@ func NewGCPStreamer(log zerolog.Logger, bucket *storage.BucketHandle) *GCPStream
 }
 
 func (g *GCPStreamer) Next() (*uploader.BlockData, error) {
+
 	g.wg.Add(1)
 	go g.poll()
 

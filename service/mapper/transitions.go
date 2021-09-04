@@ -144,6 +144,7 @@ func (t *Transitions) UpdateTree(s *State) error {
 	// branch of the execution forest.
 	update, err := t.feed.Update()
 	if err == dps.ErrUnavailable {
+		t.log.Debug().Msg("Feed update unavailable, sleeping")
 		time.Sleep(t.cfg.WaitInterval)
 		return nil
 	}
@@ -333,6 +334,7 @@ func (t *Transitions) IndexChain(s *State) error {
 	// of the next finalized block as the sentinel we will be looking for.
 	commit, err := t.chain.Commit(s.height)
 	if errors.Is(err, dps.ErrUnavailable) {
+		t.log.Debug().Msgf("Commit for height %d unavailable, sleeping", s.height)
 		time.Sleep(t.cfg.WaitInterval)
 		return nil
 	}
