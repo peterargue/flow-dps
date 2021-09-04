@@ -311,7 +311,15 @@ func run() int {
 	<-follow.NodeBuilder.Ready()
 
 	root, err := consensus.Root()
+	if err != nil {
+		log.Error().Err(err).Msg("could find root height")
+		return failure
+	}
 	rootBlock, err := consensus.Header(root)
+	if err != nil {
+		log.Error().Err(err).Msg("could get block at root height")
+		return failure
+	}
 	consensus.OnBlockFinalized(rootBlock.ID())
 
 	go func() {
