@@ -31,6 +31,8 @@ import (
 	grpczerolog "github.com/grpc-ecosystem/go-grpc-middleware/providers/zerolog/v2"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tags"
+	"github.com/onflow/flow-go/model/flow"
+	"github.com/onflow/flow-go/storage/badger/operation"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 	"google.golang.org/api/option"
@@ -310,14 +312,23 @@ func run() int {
 	// wait for consensus follower to init
 	<-follow.NodeBuilder.Ready()
 
-	root, err := consensus.Root()
+	rootHeight, err := consensus.Root()
 	if err != nil {
 		log.Error().Err(err).Msg("could find root height")
 		return failure
 	}
-	rootBlock, err := consensus.Header(root)
+
+	rootBlockID := flow.Identifier{}
+	rootBlock := flow.Header{}
+	err = data.View(func(tx *badger.Txn) error {
+		err := operation.LookupBlockHeight(rootHeight, &rootBlockID)(tx)
+		if err != nil {
+			return err
+		}
+		return operation.RetrieveHeader(rootBlockID, &rootBlock)(tx)
+	})
 	if err != nil {
-		log.Error().Err(err).Msg("could get block at root height")
+		log.Error().Err(err).Msg("could get root block")
 		return failure
 	}
 	consensus.OnBlockFinalized(rootBlock.ID())
