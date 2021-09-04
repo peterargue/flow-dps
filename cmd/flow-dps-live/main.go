@@ -331,6 +331,7 @@ func run() int {
 		log.Error().Err(err).Msg("could get root block")
 		return failure
 	}
+	log.Debug().Msgf("Feeding root block at height %d", rootBlock.Height)
 	consensus.OnBlockFinalized(rootBlock.ID())
 
 	go func() {
