@@ -85,10 +85,13 @@ func (g *GCPStreamer) poll() {
 
 func (g *GCPStreamer) pull() error {
 
+	g.log.Debug().Msg("Pulling GCP")
+
 	// We only want to retrieve and process files until the buffer is full. We
 	// do not need to have a big buffer, we just want to avoid HTTP request
 	// latency when the execution follower wants a block record.
 	if uint(g.buffer.Len()) >= g.limit {
+		g.log.Debug().Msg("Buffer full, skipping")
 		return nil
 	}
 
@@ -116,6 +119,8 @@ func (g *GCPStreamer) pull() error {
 		}
 		objects = append(objects, object)
 	}
+
+	g.log.Debug().Int("object_number", len(objects)).Msg("retrieved objects")
 
 	// Now, we sort the objects by creation time to make sure we process the
 	// oldest ones first.
