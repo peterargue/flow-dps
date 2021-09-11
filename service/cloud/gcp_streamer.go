@@ -143,12 +143,6 @@ func (g *GCPStreamer) download() error {
 			g.log.Debug().Msg("queue empty, stopping execution record download")
 			return nil
 		}
-		if object.Created.Before(g.last) {
-			// This filters out all objects we already processed.
-			continue
-		}
-		objects = append(objects, object)
-	}
 
 		// Get the name of the file based on the block ID. The file name is
 		// made up of the block ID in hex and a `.cbor` extension, see:
@@ -170,12 +164,7 @@ func (g *GCPStreamer) download() error {
 			Msg("pushing execution record into buffer")
 
 		g.buffer.PushFront(record)
-		if uint(g.buffer.Len()) >= g.limit {
-			break
-		}
 	}
-
-	return nil
 }
 
 func (g *GCPStreamer) pullRecord(name string) (*uploader.BlockData, error) {
