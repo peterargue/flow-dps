@@ -35,4 +35,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-replace github.com/onflow/flow-go/crypto => ../flow-go/crypto
+replace github.com/onflow/flow-go/crypto => ./flow-go/crypto
