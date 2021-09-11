@@ -109,7 +109,7 @@ func run() int {
 	client := dps.NewAPIClient(conn)
 	index := dps.IndexFromAPI(client, codec)
 
-	err = debugIndex(index)
+	err = debugIndex(index, log)
 	if err != nil {
 		log.Error().Str("api", flagAPI).Err(err).Msg("could not debug index")
 		return failure
@@ -155,18 +155,27 @@ func run() int {
 	return success
 }
 
-func debugIndex(index *dps.Index) error {
+func debugIndex(index *dps.Index, log zerolog.Logger) error {
 	first, err1 := index.First()
 	last, err2 := index.Last()
 
-	if err1 != nil || err2 != nil {
-		if err1 != nil {
-			return err1
-		}
-		return err2
-	}
+
 
 	fmt.Printf("Index %d to %d\n", first, last)
+
+	if err1 != nil {
+
+		log.Error().Err(err1).Msg("cannot get first")
+	}
+
+	if err2 != nil {
+
+		log.Error().Err(err2).Msg("cannot get first")
+
+	}
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("error")
+	}
 
 	return nil
 }
