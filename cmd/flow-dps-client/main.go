@@ -156,14 +156,16 @@ func run() int {
 }
 
 func debugIndex(index *dps.Index) error {
-	first, err := index.First()
-	if err != nil {
-		return err
+	first, err1 := index.First()
+	last, err2 := index.Last()
+
+	if err1 != nil || err2 != nil {
+		if err1 != nil {
+			return err1
+		}
+		return err2
 	}
-	last, err := index.Last()
-	if err != nil {
-		return err
-	}
+
 	fmt.Printf("Index %d to %d\n", first, last)
 
 	return nil
