@@ -16,9 +16,9 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"sync"
 	"sync/atomic"
 
 	"cloud.google.com/go/storage"
@@ -37,21 +37,24 @@ type GCPStreamer struct {
 	bucket *storage.BucketHandle
 	queue  *deque.Deque // queue of block identifiers for next downloads
 	buffer *deque.Deque // queue of downloaded execution data records
+	limit  uint         // buffer size limit for downloaded records
 	busy   uint32       // used as a guard to avoid concurrent polling
-	wg     *sync.WaitGroup
-	limit  uint
 }
 
-func NewGCPStreamer(log zerolog.Logger, bucket *storage.BucketHandle) *GCPStreamer {
+func NewGCPStreamer(log zerolog.Logger, bucket *storage.BucketHandle, options ...Option) *GCPStreamer {
+
+	cfg := DefaultConfig
+	for _, option := range options {
+		option(&cfg)
+	}
 
 	g := GCPStreamer{
 		log:    log.With().Str("component", "gcp_streamer").Logger(),
 		bucket: bucket,
 		queue:  deque.New(),
 		buffer: deque.New(),
+		limit:  cfg.BufferSize,
 		busy:   0,
-		wg:     &sync.WaitGroup{},
-		limit:  8,
 	}
 
 	return &g
@@ -64,45 +67,35 @@ func (g *GCPStreamer) OnBlockFinalized(blockID flow.Identifier) {
 	// We push the block ID to the front of the queue; the streamer will try to
 	// download the blocks in a FIFO manner.
 	g.queue.PushFront(blockID)
+
+	g.log.Debug().Hex("block", blockID[:]).Msg("execution record queued for download")
 }
 
 func (g *GCPStreamer) Next() (*uploader.BlockData, error) {
 
-	// We want to be able to wait for a poll to successfully complete before
-	// returning, so we add to the waiting group and start the polling in the
-	// background.
-	g.wg.Add(1)
+	// If we are not polling already, we want to start polling in the
+	// background. This will try to fill the buffer up until its limit is
+	// reached. It basically means that the cloud streamer will always be
+	// downloading if something is available and the execution tracker is asking
+	// for the next record.
 	go g.poll()
 
-	// However, in case we already have items in the buffer, we prefer to return
-	// immediately and complete the polling in the background, so the buffer is
-	// filled again for the next request. We thus only wait on the wait group if
-	// the buffer is empty.
+	// If we have nothing in the buffer, we can return the unavailable error,
+	// which will cause the mapper logic to go into a wait state and retry a bit
+	// later.
 	if g.buffer.Len() == 0 {
-		g.log.Debug().Msg("buffer empty, waiting for poll")
-		g.wg.Wait()
-	}
-
-	// At this point, we waited for polling to finish. If the buffer is still
-	// empty, it means there is no new data available on the cloud, and we can
-	// return the corresponding error.
-	if g.buffer.Len() == 0 {
-		g.log.Debug().Msg("buffer still empty, no data available")
+		g.log.Debug().Msg("buffer empty, no execution record available")
 		return nil, dps.ErrUnavailable
 	}
 
-	// When we get here, we either had a full buffer before finishing polling,
-	// or the buffer was filled up again by the polling. We can thus pop an item
-	// from the buffer and return it.
+	// If we have a record in the buffer, we will just return it. The buffer is
+	// concurrency safe, so there is no problem with popping from the back while
+	// the poll is pushing new items in the front.
 	record := g.buffer.PopBack()
 	return record.(*uploader.BlockData), nil
 }
 
 func (g *GCPStreamer) poll() {
-
-	// We defer the call to done, so that the consumer is notified of the
-	// finished poll in case it is waiting.
-	defer g.wg.Done()
 
 	// We only call `Next()` sequentially, so there is no need to guard it from
 	// concurrent access. However, when the buffer is not empty, we might still
@@ -117,14 +110,18 @@ func (g *GCPStreamer) poll() {
 	defer atomic.StoreUint32(&g.busy, 0)
 
 	// At this point, we try to pull new files from the cloud.
-	err := g.pull()
+	err := g.download()
+	if errors.Is(err, storage.ErrObjectNotExist) {
+		g.log.Debug().Msg("next execution record not available, download stopped")
+		return
+	}
 	if err != nil {
-		g.log.Error().Err(err).Msg("could not pull records")
+		g.log.Error().Err(err).Msg("could not download execution records")
 		return
 	}
 }
 
-func (g *GCPStreamer) pull() error {
+func (g *GCPStreamer) download() error {
 
 	for {
 
@@ -132,7 +129,7 @@ func (g *GCPStreamer) pull() error {
 		// do not need to have a big buffer; we just want to avoid HTTP request
 		// latency when the execution follower wants a block record.
 		if uint(g.buffer.Len()) >= g.limit {
-			g.log.Debug().Uint("limit", g.limit).Msg("buffer full, finishing pull")
+			g.log.Debug().Uint("limit", g.limit).Msg("buffer full, stopping execution record download")
 			return nil
 		}
 
@@ -143,28 +140,42 @@ func (g *GCPStreamer) pull() error {
 		// be the only way to make sure trie updates are delivered to the mapper
 		// in the right order without changing the way uploads work.
 		if uint(g.queue.Len()) == 0 {
-			g.log.Debug().Msg("queue empty, finishing pull")
+			g.log.Debug().Msg("queue empty, stopping execution record download")
 			return nil
 		}
+		if object.Created.Before(g.last) {
+			// This filters out all objects we already processed.
+			continue
+		}
+		objects = append(objects, object)
+	}
 
 		// Get the name of the file based on the block ID. The file name is
 		// made up of the block ID in hex and a `.cbor` extension, see:
 		// Maks: "thats correct. In fact the full name is `<blockID>.cbor`"
+		// If we encounter an error, such as that the file is not found, we put
+		// the block ID back into the queue and return `nil` to stop pulling.
 		blockID := g.queue.PopBack().(flow.Identifier)
 		name := blockID.String() + ".cbor"
 		record, err := g.pullRecord(name)
 		if err != nil {
-			return fmt.Errorf("could not pull record object (name: %s): %w", name, err)
+			g.queue.PushBack(blockID)
+			return fmt.Errorf("could not pull execution record (name: %s): %w", name, err)
 		}
 
 		g.log.Debug().
 			Str("name", name).
 			Uint64("height", record.Block.Header.Height).
 			Hex("block", blockID[:]).
-			Msg("pushing record object into buffer")
+			Msg("pushing execution record into buffer")
 
 		g.buffer.PushFront(record)
+		if uint(g.buffer.Len()) >= g.limit {
+			break
+		}
 	}
+
+	return nil
 }
 
 func (g *GCPStreamer) pullRecord(name string) (*uploader.BlockData, error) {
@@ -178,21 +189,21 @@ func (g *GCPStreamer) pullRecord(name string) (*uploader.BlockData, error) {
 
 	data, err := io.ReadAll(reader)
 	if err != nil {
-		return nil, fmt.Errorf("could not read object data: %w", err)
+		return nil, fmt.Errorf("could not read execution record: %w", err)
 	}
 
 	var record uploader.BlockData
 	err = cbor.Unmarshal(data, &record)
 	if err != nil {
-		return nil, fmt.Errorf("could not decode record: %w", err)
+		return nil, fmt.Errorf("could not decode execution record: %w", err)
 	}
 
 	if record.FinalStateCommitment == flow.DummyStateCommitment {
-		return nil, fmt.Errorf("record does not contain state commitment")
+		return nil, fmt.Errorf("execution record contains empty state commitment")
 	}
 
 	if record.Block.Header.Height == 0 {
-		return nil, fmt.Errorf("record does not contain block data")
+		return nil, fmt.Errorf("execution record contains empty block data")
 	}
 
 	return &record, nil
