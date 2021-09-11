@@ -102,6 +102,19 @@ func run() int {
 	}
 	defer conn.Close()
 
+	// Initialize codec.
+	codec := zbor.NewCodec()
+
+	// Execute the script using remote lookup and read.
+	client := dps.NewAPIClient(conn)
+	index := dps.IndexFromAPI(client, codec)
+
+	err = debugIndex(index)
+	if err != nil {
+		log.Error().Str("api", flagAPI).Err(err).Msg("could not debug index")
+		return failure
+	}
+
 	// Read the script.
 	script, err := os.ReadFile(flagScript)
 	if err != nil {
@@ -121,12 +134,7 @@ func run() int {
 		args = append(args, arg)
 	}
 
-	// Initialize codec.
-	codec := zbor.NewCodec()
-
-	// Execute the script using remote lookup and read.
-	client := dps.NewAPIClient(conn)
-	invoke, err := invoker.New(dps.IndexFromAPI(client, codec), invoker.WithCacheSize(flagCache))
+	invoke, err := invoker.New(index, invoker.WithCacheSize(flagCache))
 	if err != nil {
 		log.Error().Err(err).Msg("could not initialize invoker")
 		return failure
@@ -145,4 +153,18 @@ func run() int {
 	fmt.Println(string(output))
 
 	return success
+}
+
+func debugIndex(index *dps.Index) error {
+	first, err := index.First()
+	if err != nil {
+		return err
+	}
+	last, err := index.Last()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index %d to %d\n", first, last)
+
+	return nil
 }
