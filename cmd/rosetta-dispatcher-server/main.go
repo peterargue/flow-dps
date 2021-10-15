@@ -16,7 +16,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/optakt/flow-dps/rosetta/identifier"
+	"github.com/optakt/flow-rosetta/rosetta/identifier"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 	"github.com/ziflex/lecho/v2"
