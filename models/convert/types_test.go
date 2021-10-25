@@ -20,8 +20,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/optakt/flow-dps/models/convert"
-	"github.com/optakt/flow-dps/testing/mocks"
+	"github.com/dapperlabs/flow-dps/models/convert"
+	"github.com/dapperlabs/flow-dps/testing/mocks"
 )
 
 func TestTypesToStrings(t *testing.T) {
