@@ -31,11 +31,11 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/tags"
 
-	api "github.com/optakt/flow-dps/api/dps"
-	"github.com/optakt/flow-dps/codec/zbor"
-	"github.com/optakt/flow-dps/models/dps"
-	"github.com/optakt/flow-dps/service/index"
-	"github.com/optakt/flow-dps/service/storage"
+	api "github.com/dapperlabs/flow-dps/api/dps"
+	"github.com/dapperlabs/flow-dps/codec/zbor"
+	"github.com/dapperlabs/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/service/index"
+	"github.com/dapperlabs/flow-dps/service/storage"
 )
 
 const (

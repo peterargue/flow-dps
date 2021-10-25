@@ -23,7 +23,7 @@ import (
 	"github.com/onflow/flow-go/ledger"
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 
-	"github.com/optakt/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/models/dps"
 )
 
 // Index implements an execution state trie loader on top of a DPS index,

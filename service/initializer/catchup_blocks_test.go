@@ -23,9 +23,9 @@ import (
 
 	"github.com/onflow/flow-go/storage/badger/operation"
 
-	"github.com/optakt/flow-dps/service/initializer"
-	"github.com/optakt/flow-dps/testing/helpers"
-	"github.com/optakt/flow-dps/testing/mocks"
+	"github.com/dapperlabs/flow-dps/service/initializer"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
+	"github.com/dapperlabs/flow-dps/testing/mocks"
 )
 
 func TestCatchupBlocks(t *testing.T) {

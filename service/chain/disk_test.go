@@ -23,10 +23,10 @@ import (
 
 	"github.com/onflow/flow-go/storage/badger/operation"
 
-	"github.com/optakt/flow-dps/models/dps"
-	"github.com/optakt/flow-dps/service/chain"
-	"github.com/optakt/flow-dps/testing/helpers"
-	"github.com/optakt/flow-dps/testing/mocks"
+	"github.com/dapperlabs/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/service/chain"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
+	"github.com/dapperlabs/flow-dps/testing/mocks"
 )
 
 func TestDisk_Root(t *testing.T) {

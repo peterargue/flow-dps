@@ -28,7 +28,7 @@ import (
 	"github.com/onflow/flow-go/engine/execution/computation/computer/uploader"
 	"github.com/onflow/flow-go/model/flow"
 
-	"github.com/optakt/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/models/dps"
 )
 
 // GCPStreamer is a component that downloads block data from a Google Cloud bucket.

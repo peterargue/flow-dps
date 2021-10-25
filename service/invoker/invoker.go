@@ -28,7 +28,7 @@ import (
 	"github.com/onflow/flow-go/fvm/programs"
 	"github.com/onflow/flow-go/model/flow"
 
-	"github.com/optakt/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/models/dps"
 )
 
 // Invoker retrieves account information from and executes Cadence scripts against

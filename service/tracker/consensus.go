@@ -23,7 +23,7 @@ import (
 	"github.com/onflow/flow-go/model/flow"
 	"github.com/onflow/flow-go/storage/badger/operation"
 
-	"github.com/optakt/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/models/dps"
 )
 
 // Consensus is the DPS consensus follower, which uses a local protocol state

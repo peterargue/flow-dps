@@ -26,15 +26,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
 
-	"github.com/optakt/flow-dps/codec/zbor"
-	"github.com/optakt/flow-dps/models/dps"
-	"github.com/optakt/flow-dps/service/chain"
-	"github.com/optakt/flow-dps/service/feeder"
-	"github.com/optakt/flow-dps/service/forest"
-	"github.com/optakt/flow-dps/service/index"
-	"github.com/optakt/flow-dps/service/loader"
-	"github.com/optakt/flow-dps/service/mapper"
-	"github.com/optakt/flow-dps/service/storage"
+	"github.com/dapperlabs/flow-dps/codec/zbor"
+	"github.com/dapperlabs/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/service/chain"
+	"github.com/dapperlabs/flow-dps/service/feeder"
+	"github.com/dapperlabs/flow-dps/service/forest"
+	"github.com/dapperlabs/flow-dps/service/index"
+	"github.com/dapperlabs/flow-dps/service/loader"
+	"github.com/dapperlabs/flow-dps/service/mapper"
+	"github.com/dapperlabs/flow-dps/service/storage"
 )
 
 const (

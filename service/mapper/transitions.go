@@ -26,7 +26,7 @@ import (
 	"github.com/onflow/flow-go/ledger/complete/mtrie/trie"
 	"github.com/onflow/flow-go/model/flow"
 
-	"github.com/optakt/flow-dps/models/dps"
+	"github.com/dapperlabs/flow-dps/models/dps"
 )
 
 // TransitionFunc is a function that is applied onto the state machine's

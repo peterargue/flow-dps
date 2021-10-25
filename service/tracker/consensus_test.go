@@ -24,9 +24,9 @@ import (
 	"github.com/onflow/flow-go/model/flow"
 	"github.com/onflow/flow-go/storage/badger/operation"
 
-	"github.com/optakt/flow-dps/service/tracker"
-	"github.com/optakt/flow-dps/testing/helpers"
-	"github.com/optakt/flow-dps/testing/mocks"
+	"github.com/dapperlabs/flow-dps/service/tracker"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
+	"github.com/dapperlabs/flow-dps/testing/mocks"
 )
 
 func TestConsensus_Root(t *testing.T) {
