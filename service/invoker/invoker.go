@@ -16,6 +16,7 @@ package invoker
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/rs/zerolog"
@@ -153,7 +154,7 @@ func (i *Invoker) Script(height uint64, script []byte, arguments []cadence.Value
 
 	// Initialize the virtual machine context with the given block header so
 	// that parameters related to the block are available from within the script.
-	ctx := fvm.NewContext(zerolog.Nop(), fvm.WithBlockHeader(header))
+	ctx := fvm.NewContext(zerolog.Nop(), fvm.WithBlockHeader(header), fvm.WithGasLimit(math.MaxUint64))
 
 	// Initialize the read function. We use a shared cache between all heights
 	// here. It's a smart cache, which means that items that are accessed often
