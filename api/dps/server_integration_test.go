@@ -26,13 +26,13 @@ import (
 
 	"github.com/onflow/flow-go/model/flow"
 
-	"github.com/optakt/flow-dps/api/dps"
-	"github.com/optakt/flow-dps/codec/zbor"
-	"github.com/optakt/flow-dps/models/convert"
-	"github.com/optakt/flow-dps/service/index"
-	"github.com/optakt/flow-dps/service/storage"
-	"github.com/optakt/flow-dps/testing/helpers"
-	"github.com/optakt/flow-dps/testing/mocks"
+	"github.com/dapperabs/flow-dps/api/dps"
+	"github.com/dapperabs/flow-dps/codec/zbor"
+	"github.com/dapperabs/flow-dps/models/convert"
+	"github.com/dapperabs/flow-dps/service/index"
+	"github.com/dapperabs/flow-dps/service/storage"
+	"github.com/dapperabs/flow-dps/testing/helpers"
+	"github.com/dapperabs/flow-dps/testing/mocks"
 )
 
 func TestIntegrationServer_GetFirst(t *testing.T) {
