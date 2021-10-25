@@ -1,4 +1,4 @@
-module github.com/optakt/flow-dps
+module github.com/dapperlabs/flow-dps
 
 go 1.17
 
