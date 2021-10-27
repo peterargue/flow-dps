@@ -197,6 +197,7 @@ func (c *Codec) Unmarshal(compressed []byte, value interface{}) error {
 	case *ledger.Payload:
 		data, err = c.payloadDecompressor.DecodeAll(compressed, nil)
 	case *[]flow.Event:
+		fmt.Printf("magic event decompression: %x\n", compressed)
 		data, err = c.eventDecompressor.DecodeAll(compressed, nil)
 	case *flow.TransactionBody:
 		data, err = c.transactionDecompressor.DecodeAll(compressed, nil)
