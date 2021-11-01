@@ -17,6 +17,7 @@ package invoker
 import (
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/rs/zerolog"
@@ -37,6 +38,7 @@ type Invoker struct {
 	index    dps.Reader
 	vm       VirtualMachine
 	cache    Cache
+	blocks   fvm.Blocks
 	gasLimit uint64
 }
 
@@ -75,6 +77,7 @@ func New(index dps.Reader, options ...func(*Config)) (*Invoker, error) {
 		vm:       vm,
 		cache:    cache,
 		gasLimit: cfg.GasLimit,
+		blocks:   &Blocks{reader: index},
 	}
 
 	return &i, nil
@@ -157,7 +160,7 @@ func (i *Invoker) Script(height uint64, script []byte, arguments []cadence.Value
 
 	// Initialize the virtual machine context with the given block header so
 	// that parameters related to the block are available from within the script.
-	ctx := fvm.NewContext(zerolog.Nop(), fvm.WithBlockHeader(header), fvm.WithGasLimit(i.gasLimit))
+	ctx := fvm.NewContext(zerolog.New(os.Stdout), fvm.WithBlockHeader(header), fvm.WithGasLimit(i.gasLimit), fvm.WithBlocks(i.blocks), fvm.WithCadenceLogging(true))
 
 	// Initialize the read function. We use a shared cache between all heights
 	// here. It's a smart cache, which means that items that are accessed often
@@ -184,6 +187,10 @@ func (i *Invoker) Script(height uint64, script []byte, arguments []cadence.Value
 	}
 	if proc.Err != nil {
 		return nil, fmt.Errorf("script execution encountered error: %w", proc.Err)
+	}
+
+	for _, log := range proc.Logs {
+		fmt.Println(log)
 	}
 
 	return proc.Value, nil
