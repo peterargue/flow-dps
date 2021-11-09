@@ -26,6 +26,7 @@ const (
 	StatusIndex
 	StatusUpdate
 	StatusCollect
+	StatusFindFlow
 	StatusMap
 	StatusForward
 )
@@ -47,6 +48,8 @@ func (s Status) String() string {
 		return "map"
 	case StatusForward:
 		return "forward"
+	case StatusFindFlow:
+		return "find-flow"
 	default:
 		return "invalid"
 	}

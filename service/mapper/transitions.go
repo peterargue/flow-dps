@@ -17,6 +17,7 @@ package mapper
 import (
 	"errors"
 	"fmt"
+	"github.com/dapperlabs/flow-dps/service/balance"
 	"sync"
 	"time"
 
@@ -443,6 +444,50 @@ func (t *Transitions) CollectRegisters(s *State) error {
 
 	// At this point, we have collected all the payloads, so we go to the next
 	// step, where we will index them.
+	//s.status = StatusMap
+	s.status = StatusFindFlow
+	return nil
+}
+
+// FindFlow inspects registers to be updated and find FLOW vaults inside
+func (t *Transitions) FindFlow(s *State) error {
+	log := t.log.With().Uint64("height", s.height).Logger()
+	if s.status != StatusFindFlow {
+		return fmt.Errorf("invalid status for collecting registers (%s)", s.status)
+	}
+
+	// If indexing payloads is disabled, we can bypass collection and indexing
+	// of payloads and just go straight to forwarding the height to the next
+	// finalized block.
+	if t.cfg.SkipRegisters {
+		s.status = StatusForward
+		return nil
+	}
+
+	log.Debug().Msgf("About to find FLOW in %d registers", len(s.registers))
+
+	flows := make(map[flow.Address]uint64)
+
+	tStart := time.Now()
+
+	for _, payload := range s.registers {
+		payloadFlows, err := balance.DetectFlow(payload)
+		if err != nil {
+			return fmt.Errorf("cannot detect flow in payload under %s", payload.Key.String())
+		}
+		for address, b := range payloadFlows {
+			flows[address] += b
+		}
+	}
+
+	//for address, b := range flows {
+	//	log.Debug().Uint64("vault", b).Hex("address", address[:]).Msg("flow vault found")
+	//}
+
+	tDur := time.Since(tStart)
+
+	log.Info().Int("registers", len(s.registers)).Dur("elapsed", tDur).Msg("inspected all registers for FLOW for finalized block")
+
 	s.status = StatusMap
 	return nil
 }
