@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/dapperlabs/flow-dps/testing/mocks"
 	"github.com/onflow/flow-go/ledger"
-	"github.com/optakt/flow-dps/testing/mocks"
 )
 
 func TestReadRegister(t *testing.T) {

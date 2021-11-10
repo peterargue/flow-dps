@@ -338,3 +338,7 @@ func (i *Index) SealsByHeight(height uint64) ([]flow.Identifier, error) {
 
 	return sealIDs, nil
 }
+
+func (i *Index) FlowRegisters(address flow.Address, height uint64) (map[ledger.Path]uint64, error) {
+	panic("not implemented yet")
+}
