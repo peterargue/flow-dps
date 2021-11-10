@@ -215,7 +215,7 @@ func (l *Library) RetrievePayload(height uint64, path ledger.Path, payload *ledg
 	}
 }
 
-func (l *Library) LookupFlowRegistersForHeight(address flow.Address, height uint64, flowRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
+func (l *Library) LookupFlowRegistersForHeight(address flow.Address, height uint64, flowRegisters *map[ledger.Path]uint64) func(*badger.Txn) error {
 	return func(tx *badger.Txn) error {
 		key := EncodeKey(PrefixFlowRegisters, address, height)
 		it := tx.NewIterator(badger.IteratorOptions{

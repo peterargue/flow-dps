@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/onflow/flow-go/model/flow"
 	"math"
 	"os"
 	"os/signal"
@@ -27,12 +28,10 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/onflow/cadence"
-	"github.com/onflow/cadence/encoding/json"
 
 	"github.com/dapperlabs/flow-dps/api/dps"
 	"github.com/dapperlabs/flow-dps/codec/zbor"
 	"github.com/dapperlabs/flow-dps/models/convert"
-	"github.com/dapperlabs/flow-dps/service/invoker"
 )
 
 const (
@@ -104,12 +103,12 @@ func run() int {
 	}
 	defer conn.Close()
 
-	// Read the script.
-	script, err := os.ReadFile(flagScript)
-	if err != nil {
-		log.Error().Str("script", flagScript).Err(err).Msg("could not read script")
-		return failure
-	}
+	//// Read the script.
+	//script, err := os.ReadFile(flagScript)
+	//if err != nil {
+	//	log.Error().Str("script", flagScript).Err(err).Msg("could not read script")
+	//	return failure
+	//}
 
 	// Decode the arguments
 	var args []cadence.Value
@@ -130,23 +129,37 @@ func run() int {
 
 	// Execute the script using remote lookup and read.
 	client := dps.NewAPIClient(conn)
-	invoke, err := invoker.New(dps.IndexFromAPI(client, codec), invoker.WithCacheSize(flagCache), invoker.WithGasLimit(flagGasLimit))
+
+	index := dps.IndexFromAPI(client, codec)
+
+	// staking account
+	flowRegisters, err := index.FlowRegisters(flow.HexToAddress("8624b52f9ddcd04a"), flagHeight)
 	if err != nil {
-		log.Error().Err(err).Msg("could not initialize invoker")
-		return failure
-	}
-	result, err := invoke.Script(flagHeight, script, args)
-	if err != nil {
-		log.Error().Err(err).Msg("could not invoke script")
-		return failure
-	}
-	output, err := json.Encode(result)
-	if err != nil {
-		log.Error().Uint64("height", flagHeight).Err(err).Msg("could not encode result")
+		log.Error().Err(err).Msg("could not get registers")
 		return failure
 	}
 
-	fmt.Println(string(output))
+	for path, balance := range flowRegisters {
+		fmt.Printf("register %x => %d\n", path, balance)
+	}
+
+	//invoke, err := invoker.New(index, invoker.WithCacheSize(flagCache), invoker.WithGasLimit(flagGasLimit))
+	//if err != nil {
+	//	log.Error().Err(err).Msg("could not initialize invoker")
+	//	return failure
+	//}
+	//result, err := invoke.Script(flagHeight, script, args)
+	//if err != nil {
+	//	log.Error().Err(err).Msg("could not invoke script")
+	//	return failure
+	//}
+	//output, err := json.Encode(result)
+	//if err != nil {
+	//	log.Error().Uint64("height", flagHeight).Err(err).Msg("could not encode result")
+	//	return failure
+	//}
+	//
+	//fmt.Println(string(output))
 
 	return success
 }

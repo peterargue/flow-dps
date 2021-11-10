@@ -885,3 +885,7 @@ func (a *apiMock) GetSeal(ctx context.Context, in *GetSealRequest, opts ...grpc.
 func (a *apiMock) ListSealsForHeight(ctx context.Context, in *ListSealsForHeightRequest, opts ...grpc.CallOption) (*ListSealsForHeightResponse, error) {
 	return a.ListSealsForHeightFunc(ctx, in, opts...)
 }
+
+func (a *apiMock) GetFlowRegisters(_ context.Context, req *GetFlowRegistersRequest, opts ...grpc.CallOption) (*GetFlowRegistersResponse, error) {
+	return nil, nil
+}
