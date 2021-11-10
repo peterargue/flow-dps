@@ -65,7 +65,7 @@ func DetectFlow(p *ledger.Payload) (map[flow.Address]uint64, error) {
 
 				address := flow.BytesToAddress([]byte(id.Owner))
 
-				fmt.Printf("Found %d FLOW for account %x under %s location\n", b, address, value.Location().String())
+				//fmt.Printf("Found %d FLOW for account %x under %s location\n", b, address, value.Location().String())
 
 				flows[address] += b
 

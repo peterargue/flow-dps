@@ -398,6 +398,8 @@ func (t *Transitions) CollectRegisters(s *State) error {
 		return nil
 	}
 
+	emptyRegisters := 0
+
 	// If we index payloads, we are basically stepping back from (and including)
 	// the tree that corresponds to the next finalized block all the way up to
 	// (and excluding) the tree for the last finalized block we indexed. To do
@@ -430,7 +432,12 @@ func (t *Transitions) CollectRegisters(s *State) error {
 				continue
 			}
 			payloads := tree.UnsafeRead([]ledger.Path{path})
-			s.registers[path] = payloads[0]
+			payload := payloads[0]
+			if len(payload.Value) > 0 {
+				s.registers[path] = payload
+			} else {
+				emptyRegisters++
+			}
 		}
 
 		log.Debug().Int("batch", len(paths)).Msg("collected register batch for finalized block")
@@ -440,7 +447,7 @@ func (t *Transitions) CollectRegisters(s *State) error {
 		commit = parent
 	}
 
-	log.Info().Int("registers", len(s.registers)).Msg("collected all registers for finalized block")
+	log.Info().Int("registers", len(s.registers)).Int("empty_registers", emptyRegisters).Msg("collected all registers for finalized block")
 
 	// At this point, we have collected all the payloads, so we go to the next
 	// step, where we will index them.
