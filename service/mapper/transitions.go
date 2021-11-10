@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dapperlabs/flow-dps/service/balance"
+	"github.com/dgraph-io/badger/v2"
 	"sync"
 	"time"
 
@@ -509,8 +510,10 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	for address, updatedRegisters := range s.flows {
 		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
-		if err != nil {
-			return fmt.Errorf("error while retrieving previous flow registers for account %x: %w", address, err)
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			previousRegisters = make(map[ledger.Path]uint64, 0)
+		} else if err != nil {
+			return fmt.Errorf("error while retrieving previous flow registers for account %s: %w", address, err)
 		}
 
 		for path, _ := range previousRegisters {

@@ -16,8 +16,8 @@ package dps
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
-
 	"github.com/onflow/flow-go/ledger"
 	"github.com/onflow/flow-go/model/flow"
 
@@ -340,5 +340,29 @@ func (i *Index) SealsByHeight(height uint64) ([]flow.Identifier, error) {
 }
 
 func (i *Index) FlowRegisters(address flow.Address, height uint64) (map[ledger.Path]uint64, error) {
-	panic("not implemented yet")
+	req := GetFlowRegistersRequest{
+		Address: address.Bytes(),
+		Height:  height,
+	}
+
+	res, err := i.client.GetFlowRegisters(context.Background(), &req)
+	if err != nil {
+		return nil, fmt.Errorf("could not get flow registers: %w", err)
+	}
+
+	flowRegisters := make(map[ledger.Path]uint64, len(res.Registers))
+
+	for pathStr, balance := range res.Registers {
+		bytes, err := hex.DecodeString(pathStr)
+		if err != nil {
+			return nil, fmt.Errorf("could not decode register path %s: %w", pathStr, err)
+		}
+		path, err := ledger.ToPath(bytes)
+		if err != nil {
+			return nil, fmt.Errorf("could not convert path to ledger path %s: %w", pathStr, err)
+		}
+		flowRegisters[path] = balance
+	}
+
+	return flowRegisters, nil
 }
