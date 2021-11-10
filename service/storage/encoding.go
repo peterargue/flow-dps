@@ -39,6 +39,9 @@ func EncodeKey(prefix uint8, segments ...interface{}) []byte {
 		case flow.StateCommitment:
 			val = make([]byte, 32)
 			copy(val, s[:])
+		case flow.Address:
+			val = make([]byte, flow.AddressLength)
+			copy(val, s[:])
 		default:
 			panic(fmt.Sprintf("unknown type (%T)", segment))
 		}
