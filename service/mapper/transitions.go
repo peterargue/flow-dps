@@ -510,7 +510,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 	for address, updatedRegisters := range s.flows {
 		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
 		if err != nil {
-			return fmt.Errorf("error while retrieving previous flow registers for account %x\n", address)
+			return fmt.Errorf("error while retrieving previous flow registers for account %x: %w", address, err)
 		}
 
 		for path, _ := range previousRegisters {
