@@ -554,6 +554,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 	// skip saving registers for testing
 	//s.status = StatusMap
 	s.status = StatusForward
+	s.registers = make(map[ledger.Path]*ledger.Payload, 0)
 	return nil
 }
 
