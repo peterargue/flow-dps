@@ -473,29 +473,76 @@ func (t *Transitions) FindFlow(s *State) error {
 
 	log.Debug().Msgf("About to find FLOW in %d registers", len(s.registers))
 
-	flows := make(map[flow.Address]uint64)
+	flows := make(map[flow.Address]map[ledger.Path]uint64)
 
 	tStart := time.Now()
 
-	for _, payload := range s.registers {
-		payloadFlows, err := balance.DetectFlow(payload)
+	for path, payload := range s.registers {
+		err := balance.DetectFlow(path, payload, flows)
 		if err != nil {
 			return fmt.Errorf("cannot detect flow in payload under %s", payload.Key.String())
 		}
-		for address, b := range payloadFlows {
-			flows[address] += b
-		}
 	}
 
-	//for address, b := range flows {
-	//	log.Debug().Uint64("vault", b).Hex("address", address[:]).Msg("flow vault found")
-	//}
+	s.flows = flows
 
 	tDur := time.Since(tStart)
 
-	log.Info().Int("registers", len(s.registers)).Dur("elapsed", tDur).Msg("inspected all registers for FLOW for finalized block")
+	log.Info().Int("registers", len(flows)).Dur("elapsed", tDur).Msg("inspected all registers for FLOW for finalized block")
 
-	s.status = StatusMap
+	s.status = StatusBalanceFlow
+	return nil
+}
+
+// BalanceFlow find previous Flow vaults and updates them
+func (t *Transitions) BalanceFlow(s *State) error {
+	log := t.log.With().Uint64("height", s.height).Logger()
+	if s.status != StatusBalanceFlow {
+		return fmt.Errorf("invalid status for balancing flow (%s)", s.status)
+	}
+
+	log.Debug().Msgf("About to balance FLOW for %d accounts", len(s.flows))
+
+	flows := make(map[flow.Address]map[ledger.Path]uint64)
+
+	tStart := time.Now()
+
+	for address, updatedRegisters := range s.flows {
+		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
+		if err != nil {
+			return fmt.Errorf("error while retrieving previous flow registers for account %x\n", address)
+		}
+
+		for path, _ := range previousRegisters {
+			newBalance, has := updatedRegisters[path]
+			if has {
+				previousRegisters[path] = newBalance
+				delete(updatedRegisters, path)
+			}
+			// remove empty vaults
+			if newBalance == 0 {
+				delete(previousRegisters, path)
+			}
+		}
+		for path, newBalance := range updatedRegisters {
+			if newBalance > 0 { // ignore empty vaults
+				previousRegisters[path] = newBalance
+			}
+		}
+
+		err = t.write.FlowRegisters(address, s.height, previousRegisters)
+		if err != nil {
+			return fmt.Errorf("cannot write flow registers for account %x", address)
+		}
+	}
+
+	tDur := time.Since(tStart)
+
+	log.Info().Int("registers", len(flows)).Dur("elapsed", tDur).Msg("balanced all Flow vaults for finalized block")
+
+	// skip saving registers for testing
+	//s.status = StatusMap
+	s.status = StatusForward
 	return nil
 }
 

@@ -109,6 +109,10 @@ func (l *Library) IndexSealsForHeight(height uint64, sealIDs []flow.Identifier) 
 	return l.save(EncodeKey(PrefixSealsForHeight, height), sealIDs)
 }
 
+func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint64, flowRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
+	return l.save(EncodeKey(PrefixFlowRegisters, address, height), flowRegisters)
+}
+
 // SaveResult is an operation that writes the given transaction result.
 func (l *Library) SaveResult(result *flow.TransactionResult) func(*badger.Txn) error {
 	return l.save(EncodeKey(PrefixResults, result.TransactionID), result)
@@ -205,6 +209,32 @@ func (l *Library) RetrievePayload(height uint64, path ledger.Path, payload *ledg
 
 		err := it.Item().Value(func(val []byte) error {
 			return l.codec.Unmarshal(val, payload)
+		})
+
+		return err
+	}
+}
+
+func (l *Library) LookupFlowRegistersForHeight(address flow.Address, height uint64, flowRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
+	return func(tx *badger.Txn) error {
+		key := EncodeKey(PrefixFlowRegisters, address, height)
+		it := tx.NewIterator(badger.IteratorOptions{
+			PrefetchSize:   0,
+			PrefetchValues: false,
+			Reverse:        true,
+			AllVersions:    false,
+			InternalAccess: false,
+			Prefix:         key[:1+flow.AddressLength],
+		})
+		defer it.Close()
+
+		it.Seek(key)
+		if !it.Valid() {
+			return badger.ErrKeyNotFound
+		}
+
+		err := it.Item().Value(func(val []byte) error {
+			return l.codec.Unmarshal(val, flowRegisters)
 		})
 
 		return err

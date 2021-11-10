@@ -13,23 +13,23 @@ import (
 	"math"
 )
 
-func DetectFlow(p *ledger.Payload) (map[flow.Address]uint64, error) {
+func DetectFlow(path ledger.Path, p *ledger.Payload, flows map[flow.Address]map[ledger.Path]uint64) error {
 
 	id, err := keyToRegisterID(p.Key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Ignore known payload keys that are not Cadence values
 	if state.IsFVMStateKey(id.Owner, id.Controller, id.Key) {
-		return nil, nil
+		return nil
 	}
 
 	value, version := interpreter.StripMagic(p.Value)
 
 	err = storageMigrationV5DecMode.Valid(value)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	decodeFunction := interpreter.DecodeValue
@@ -43,7 +43,7 @@ func DetectFlow(p *ledger.Payload) (map[flow.Address]uint64, error) {
 
 	cValue, err := decodeFunction(value, &owner, cPath, version, nil)
 	if err != nil {
-		return nil, fmt.Errorf(
+		return fmt.Errorf(
 			"failed to decode value: %w\n\nvalue:\n%s\n",
 			err, hex.Dump(value),
 		)
@@ -55,19 +55,20 @@ func DetectFlow(p *ledger.Payload) (map[flow.Address]uint64, error) {
 	//	r.totalSupply = tokenSupply
 	//}
 
-	flows := make(map[flow.Address]uint64)
+	//flows := make(map[flow.Address]map[string]uint64)
 
 	balanceVisitor := &interpreter.EmptyVisitor{
 		CompositeValueVisitor: func(inter *interpreter.Interpreter, value *interpreter.CompositeValue) bool {
 
 			if string(value.TypeID()) == "A.1654653399040a61.FlowToken.Vault" {
 				b := uint64(value.GetField("balance").(interpreter.UFix64Value))
-
 				address := flow.BytesToAddress([]byte(id.Owner))
 
-				//fmt.Printf("Found %d FLOW for account %x under %s location\n", b, address, value.Location().String())
+				if _, has := flows[address][path]; !has {
+					flows[address] = make(map[ledger.Path]uint64)
+				}
 
-				flows[address] += b
+				flows[address][path] += b
 
 				return false
 			}
@@ -80,11 +81,11 @@ func DetectFlow(p *ledger.Payload) (map[flow.Address]uint64, error) {
 
 	inter, err := interpreter.NewInterpreter(nil, common.StringLocation("somewhere"))
 	if err != nil {
-		return nil, err
+		return err
 	}
 	cValue.Accept(inter, balanceVisitor)
 
-	return flows, nil
+	return nil
 }
 
 func keyToRegisterID(key ledger.Key) (flow.RegisterID, error) {

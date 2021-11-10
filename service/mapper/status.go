@@ -27,6 +27,7 @@ const (
 	StatusUpdate
 	StatusCollect
 	StatusFindFlow
+	StatusBalanceFlow
 	StatusMap
 	StatusForward
 )
