@@ -133,13 +133,14 @@ func run() int {
 	index := dps.IndexFromAPI(client, codec)
 
 	// staking account
-	flowRegisters, err := index.FlowRegisters(flow.HexToAddress("d796ff17107bbff6"), flagHeight)
+	flowRegisters, err := index.FlowRegisters(flow.HexToAddress("8624b52f9ddcd04a"), flagHeight)
 	if err != nil {
 		log.Error().Err(err).Msg("could not get registers")
 		return failure
 	}
 	total := uint64(0)
-	for _, balance := range flowRegisters {
+	for path, balance := range flowRegisters {
+		fmt.Printf("%x => %d\n", path[:], balance)
 		total += balance
 	}
 

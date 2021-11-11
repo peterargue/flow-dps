@@ -18,8 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dapperlabs/flow-dps/service/balance"
-	"github.com/dapperlabs/flow-dps/testing/helpers"
-	"github.com/dgraph-io/badger/v2"
 	"sync"
 	"time"
 
@@ -513,62 +511,63 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	for address, updatedRegisters := range s.flows {
 
-		debug := false
+		//debug := false
+		//
+		//if helpers.IsDebugAccount(address) {
+		//	debug = true
+		//}
+		//
+		//previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
+		//
+		//if debug {
+		//	fmt.Printf("Address %s\n", address)
+		//	fmt.Printf("Updated registers:\n")
+		//	for path, b := range updatedRegisters {
+		//		fmt.Printf("U %x => %d\n", path[:], b)
+		//	}
+		//	fmt.Printf("previous regisers for %d\n", s.height-1)
+		//	fmt.Printf("err = %s\n", err)
+		//	for path, b := range previousRegisters {
+		//		fmt.Printf("P %x => %d\n", path[:], b)
+		//	}
+		//}
+		//
+		//if errors.Is(err, badger.ErrKeyNotFound) {
+		//	previousRegisters = make(map[ledger.Path]uint64, 0)
+		//} else if err != nil {
+		//	return fmt.Errorf("error while retrieving previous flow registers for account %s: %w", address, err)
+		//}
+		//
+		//for path, _ := range previousRegisters {
+		//	newBalance, has := updatedRegisters[path]
+		//	if has {
+		//		previousRegisters[path] = newBalance
+		//		delete(updatedRegisters, path)
+		//		if newBalance == 0 {
+		//			delete(previousRegisters, path)
+		//		}
+		//	}
+		//}
+		////if debug {
+		////	fmt.Printf("updated existing registers\n")
+		////	for path, b := range previousRegisters {
+		////		fmt.Printf("UE %x => %d\n", path[:], b)
+		////	}
+		////}
+		//for path, newBalance := range updatedRegisters {
+		//	if newBalance > 0 { // ignore empty vaults
+		//		previousRegisters[path] = newBalance
+		//	}
+		//}
+		//if debug {
+		//	fmt.Printf("updated new registers\n")
+		//	for path, b := range previousRegisters {
+		//		fmt.Printf("F %x => %d\n", path[:], b)
+		//	}
+		//}
 
-		if helpers.IsDebugAccount(address) {
-			debug = true
-		}
-
-		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
-
-		if debug {
-			fmt.Printf("Address %s\n", address)
-			fmt.Printf("Updated registers:\n")
-			for path, b := range updatedRegisters {
-				fmt.Printf("%x => %d\n", path[:], b)
-			}
-			fmt.Printf("previous regisers for %d\n", s.height-1)
-			fmt.Printf("err = %s\n", err)
-			for path, b := range previousRegisters {
-				fmt.Printf("%x => %d\n", path[:], b)
-			}
-		}
-
-		if errors.Is(err, badger.ErrKeyNotFound) {
-			previousRegisters = make(map[ledger.Path]uint64, 0)
-		} else if err != nil {
-			return fmt.Errorf("error while retrieving previous flow registers for account %s: %w", address, err)
-		}
-
-		for path, _ := range previousRegisters {
-			newBalance, has := updatedRegisters[path]
-			if has {
-				previousRegisters[path] = newBalance
-				delete(updatedRegisters, path)
-				if newBalance == 0 {
-					delete(previousRegisters, path)
-				}
-			}
-		}
-		if debug {
-			fmt.Printf("updated existing registers\n")
-			for path, b := range previousRegisters {
-				fmt.Printf("%x => %d\n", path[:], b)
-			}
-		}
-		for path, newBalance := range updatedRegisters {
-			if newBalance > 0 { // ignore empty vaults
-				previousRegisters[path] = newBalance
-			}
-		}
-		if debug {
-			fmt.Printf("updated new registers\n")
-			for path, b := range previousRegisters {
-				fmt.Printf("%x => %d\n", path[:], b)
-			}
-		}
-
-		err = t.write.FlowRegisters(address, s.height, previousRegisters)
+		//err = t.write.FlowRegisters(address, s.height, previousRegisters)
+		err := t.write.FlowRegisters(address, s.height, updatedRegisters)
 		if err != nil {
 			return fmt.Errorf("cannot write flow registers for account %x", address)
 		}

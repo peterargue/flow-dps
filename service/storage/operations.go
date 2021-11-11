@@ -16,7 +16,9 @@ package storage
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
 	"math"
 
 	"github.com/OneOfOne/xxhash"
@@ -109,8 +111,68 @@ func (l *Library) IndexSealsForHeight(height uint64, sealIDs []flow.Identifier) 
 	return l.save(EncodeKey(PrefixSealsForHeight, height), sealIDs)
 }
 
-func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint64, flowRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
-	return l.save(EncodeKey(PrefixFlowRegisters, address, height), flowRegisters)
+func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint64, updatedRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
+
+	return func(tx *badger.Txn) error {
+		debug := false
+
+		if helpers.IsDebugAccount(address) {
+			debug = true
+		}
+
+		var previousRegisters map[ledger.Path]uint64
+
+		err := l.LookupFlowRegistersForHeight(address, height, &previousRegisters)(tx)
+
+		if debug {
+			fmt.Printf("Address %s\n", address)
+			fmt.Printf("Updated registers:\n")
+			for path, b := range updatedRegisters {
+				fmt.Printf("U %x => %d\n", path[:], b)
+			}
+			fmt.Printf("previous regisers for %d\n", height-1)
+			fmt.Printf("err = %s\n", err)
+			for path, b := range previousRegisters {
+				fmt.Printf("P %x => %d\n", path[:], b)
+			}
+		}
+
+		if errors.Is(err, badger.ErrKeyNotFound) {
+			previousRegisters = make(map[ledger.Path]uint64, 0)
+		} else if err != nil {
+			return fmt.Errorf("error while retrieving previous flow registers for account %s: %w", address, err)
+		}
+
+		for path, _ := range previousRegisters {
+			newBalance, has := updatedRegisters[path]
+			if has {
+				previousRegisters[path] = newBalance
+				delete(updatedRegisters, path)
+				if newBalance == 0 {
+					delete(previousRegisters, path)
+				}
+			}
+		}
+		//if debug {
+		//	fmt.Printf("updated existing registers\n")
+		//	for path, b := range previousRegisters {
+		//		fmt.Printf("UE %x => %d\n", path[:], b)
+		//	}
+		//}
+		for path, newBalance := range updatedRegisters {
+			if newBalance > 0 { // ignore empty vaults
+				previousRegisters[path] = newBalance
+			}
+		}
+		if debug {
+			fmt.Printf("updated new registers\n")
+			for path, b := range previousRegisters {
+				fmt.Printf("F %x => %d\n", path[:], b)
+			}
+		}
+
+		return l.save(EncodeKey(PrefixFlowRegisters, address, height), previousRegisters)(tx)
+	}
 }
 
 // SaveResult is an operation that writes the given transaction result.
