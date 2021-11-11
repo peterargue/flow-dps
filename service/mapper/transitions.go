@@ -514,7 +514,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 		debug := false
 
-		if address.Hex() == "8624b52f9ddcd04a" {
+		if address.Hex() == "d796ff17107bbff6" {
 			debug = true
 		}
 
