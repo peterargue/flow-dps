@@ -540,14 +540,10 @@ func (t *Transitions) BalanceFlow(s *State) error {
 		}
 
 		for path, _ := range previousRegisters {
-			newBalance, has := updatedRegisters[path]
-			if has {
+			newBalance := updatedRegisters[path]
+			if newBalance > 0 { //if path doesn't exist newBalance will be 0
 				previousRegisters[path] = newBalance
 				delete(updatedRegisters, path)
-			}
-			// remove empty vaults
-			if newBalance == 0 {
-				delete(previousRegisters, path)
 			}
 		}
 		if debug {
