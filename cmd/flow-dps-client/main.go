@@ -138,7 +138,7 @@ func run() int {
 		log.Error().Err(err).Msg("could not get registers")
 		return failure
 	}
-
+	fmt.Printf("got %d\n", len(flowRegisters))
 	for path, balance := range flowRegisters {
 		fmt.Printf("register %x => %d\n", path, balance)
 	}

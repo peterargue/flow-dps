@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/onflow/flow-go/ledger"
 	"github.com/onflow/flow-go/model/flow"
 
@@ -349,6 +350,8 @@ func (i *Index) FlowRegisters(address flow.Address, height uint64) (map[ledger.P
 	if err != nil {
 		return nil, fmt.Errorf("could not get flow registers: %w", err)
 	}
+
+	spew.Dump(res)
 
 	flowRegisters := make(map[ledger.Path]uint64, len(res.Registers))
 

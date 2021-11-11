@@ -452,6 +452,8 @@ func (s *Server) GetFlowRegisters(_ context.Context, req *GetFlowRegistersReques
 
 	address := flow.BytesToAddress(req.Address)
 
+	fmt.Printf("GetFlowRegisters for %s\n", address.String())
+
 	flowRegisters, err := s.index.FlowRegisters(address, req.Height)
 	if err != nil {
 		return nil, fmt.Errorf("could not get flow registes: %w", err)
