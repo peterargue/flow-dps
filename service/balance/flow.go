@@ -66,7 +66,7 @@ func DetectFlow(path ledger.Path, p *ledger.Payload, flows map[flow.Address]map[
 
 				if address.Hex() == "d796ff17107bbff6" {
 
-					fmt.Printf("Found %d flow for %s under path %x => %s\n", b, address.String(), path[:], id.String())
+					fmt.Printf("Found %d flow for %s under path %x => %x/%x/%s\n", b, address.String(), path[:], id.Owner, id.Controller, id.Key)
 					//fmt.Printf("current balances for address: \n")
 					//for path, b := range flows[address] {
 					//	fmt.Printf("%x => %d\n", path[:], b)
