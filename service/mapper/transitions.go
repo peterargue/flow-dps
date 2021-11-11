@@ -540,10 +540,13 @@ func (t *Transitions) BalanceFlow(s *State) error {
 		}
 
 		for path, _ := range previousRegisters {
-			newBalance := updatedRegisters[path]
-			if newBalance > 0 { //if path doesn't exist newBalance will be 0
+			newBalance, has := updatedRegisters[path]
+			if has {
 				previousRegisters[path] = newBalance
 				delete(updatedRegisters, path)
+				if newBalance == 0 {
+					delete(previousRegisters, path)
+				}
 			}
 		}
 		if debug {
@@ -569,7 +572,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 			return fmt.Errorf("cannot write flow registers for account %x", address)
 		}
 
-		if n%10000 == 0 {
+		if n%100000 == 0 {
 			log.Debug().Msgf("Balanced flow for %d accounts", n)
 		}
 
