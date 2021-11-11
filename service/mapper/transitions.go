@@ -511,7 +511,28 @@ func (t *Transitions) BalanceFlow(s *State) error {
 	n := 0
 
 	for address, updatedRegisters := range s.flows {
+
+		debug := false
+
+		if address.Hex() == "8624b52f9ddcd04a" {
+			debug = true
+		}
+
 		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
+
+		if debug {
+			fmt.Printf("Address %s\n", address)
+			fmt.Printf("Updated registers:\n")
+			for path, b := range updatedRegisters {
+				fmt.Printf("%x => %d\n", path[:], b)
+			}
+			fmt.Printf("previous regisers for %d\n", s.height-1)
+			fmt.Printf("err = %s\n", err)
+			for path, b := range previousRegisters {
+				fmt.Printf("%x => %d\n", path[:], b)
+			}
+		}
+
 		if errors.Is(err, badger.ErrKeyNotFound) {
 			previousRegisters = make(map[ledger.Path]uint64, 0)
 		} else if err != nil {
@@ -529,9 +550,21 @@ func (t *Transitions) BalanceFlow(s *State) error {
 				delete(previousRegisters, path)
 			}
 		}
+		if debug {
+			fmt.Printf("updated existing registers\n")
+			for path, b := range previousRegisters {
+				fmt.Printf("%x => %d\n", path[:], b)
+			}
+		}
 		for path, newBalance := range updatedRegisters {
 			if newBalance > 0 { // ignore empty vaults
 				previousRegisters[path] = newBalance
+			}
+		}
+		if debug {
+			fmt.Printf("updated new registers\n")
+			for path, b := range previousRegisters {
+				fmt.Printf("%x => %d\n", path[:], b)
 			}
 		}
 
@@ -540,7 +573,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 			return fmt.Errorf("cannot write flow registers for account %x", address)
 		}
 
-		if n%1000 == 0 {
+		if n%10000 == 0 {
 			log.Debug().Msgf("Balanced flow for %d accounts", n)
 		}
 
