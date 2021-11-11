@@ -3,6 +3,7 @@ package balance
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/onflow/cadence/runtime/common"
 	"github.com/onflow/cadence/runtime/interpreter"
@@ -64,7 +65,7 @@ func DetectFlow(path ledger.Path, p *ledger.Payload, flows map[flow.Address]map[
 				b := uint64(value.GetField("balance").(interpreter.UFix64Value))
 				address := flow.BytesToAddress([]byte(id.Owner))
 
-				if address.Hex() == "d796ff17107bbff6" {
+				if helpers.IsDebugAccount(address) {
 
 					fmt.Printf("Found %d flow for %s under path %x => %x/%x/%s\n", b, address.String(), path[:], id.Owner, id.Controller, id.Key)
 					//fmt.Printf("current balances for address: \n")

@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dapperlabs/flow-dps/service/balance"
+	"github.com/dapperlabs/flow-dps/testing/helpers"
 	"github.com/dgraph-io/badger/v2"
 	"sync"
 	"time"
@@ -514,7 +515,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 		debug := false
 
-		if address.Hex() == "d796ff17107bbff6" {
+		if helpers.IsDebugAccount(address) {
 			debug = true
 		}
 
