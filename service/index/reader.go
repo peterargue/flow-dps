@@ -210,5 +210,9 @@ func (r *Reader) FlowRegisters(address flow.Address, height uint64) (map[ledger.
 	var flowRegisters map[ledger.Path]uint64
 
 	err := r.db.View(r.lib.LookupFlowRegistersForHeight(address, height, &flowRegisters))
+	if errors.Is(err, badger.ErrKeyNotFound) {
+		return map[ledger.Path]uint64{}, nil
+	}
+
 	return flowRegisters, err
 }

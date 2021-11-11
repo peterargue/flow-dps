@@ -514,9 +514,9 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 		debug := false
 
-		//if address.Hex() == "d796ff17107bbff6" {
-		//	debug = true
-		//}
+		if address.Hex() == "d796ff17107bbff6" {
+			debug = true
+		}
 
 		previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
 
