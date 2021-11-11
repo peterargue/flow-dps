@@ -64,7 +64,16 @@ func DetectFlow(path ledger.Path, p *ledger.Payload, flows map[flow.Address]map[
 				b := uint64(value.GetField("balance").(interpreter.UFix64Value))
 				address := flow.BytesToAddress([]byte(id.Owner))
 
-				if _, has := flows[address][path]; !has {
+				if address.Hex() == "8624b52f9ddcd04a" {
+
+					fmt.Printf("Found %d flow for %s under path %x => %s\n", b, address.String(), path[:], id.String())
+					fmt.Printf("current balances for address: \n")
+					for path, b := range flows[address] {
+						fmt.Printf("%x => %d\n", path[:], b)
+					}
+				}
+
+				if _, has := flows[address]; !has {
 					flows[address] = make(map[ledger.Path]uint64)
 				}
 
