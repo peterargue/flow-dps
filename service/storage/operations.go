@@ -125,7 +125,7 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 
 		err := l.LookupFlowRegistersForHeight(address, height-1, &previousRegisters)(tx)
 
-		fmt.Printf("In IndexFlowRegistersForHeight, after query previous registers for %s at %d\n", address.String(), height)
+		fmt.Printf("In IndexFlowRegistersForHeight, after query previous registers for %s at %d, err = %s\n", address.String(), height, err)
 
 		if debug {
 			fmt.Printf("Address %s\n", address)
@@ -174,7 +174,11 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 			}
 		}
 
-		return l.save(EncodeKey(PrefixFlowRegisters, address, height), previousRegisters)(tx)
+		if len(previousRegisters) > 0 {
+			return l.save(EncodeKey(PrefixFlowRegisters, address, height), previousRegisters)(tx)
+		} else {
+			return nil
+		}
 	}
 }
 

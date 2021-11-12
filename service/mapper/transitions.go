@@ -508,7 +508,6 @@ func (t *Transitions) BalanceFlow(s *State) error {
 	tStart := time.Now()
 
 	n := 0
-
 	for address, updatedRegisters := range s.flows {
 
 		//debug := false
@@ -573,8 +572,9 @@ func (t *Transitions) BalanceFlow(s *State) error {
 				return fmt.Errorf("cannot write flow registers for account %x", address)
 			}
 		}
-		if n%100000 == 0 {
-			log.Debug().Msgf("Balanced flow for %d accounts", n)
+		if n%1000 == 0 {
+			log.Debug().Dur("elapsed", time.Since(tStart)).Msgf("Balanced flow for %d accounts", n)
+			tStart = time.Now()
 		}
 
 		n++
