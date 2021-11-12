@@ -504,6 +504,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 	log.Debug().Msgf("About to balance FLOW for %d accounts", len(s.flows))
 
 	if len(s.flows) == 0 {
+		log.Debug().Msg("All flow balanced")
 		// skip saving registers for testing
 		//s.status = StatusMap
 		s.status = StatusForward
@@ -596,10 +597,6 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	log.Info().Int("remaining", len(s.flows)).Dur("elapsed", tDur).Msgf("balanced %d Flow vaults for finalized block", n)
 
-	// skip saving registers for testing
-	//s.status = StatusMap
-	s.status = StatusForward
-	s.registers = make(map[ledger.Path]*ledger.Payload, 0)
 	return nil
 }
 
