@@ -503,11 +503,21 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	log.Debug().Msgf("About to balance FLOW for %d accounts", len(s.flows))
 
+	if len(s.flows) == 0 {
+		// skip saving registers for testing
+		//s.status = StatusMap
+		s.status = StatusForward
+		s.registers = make(map[ledger.Path]*ledger.Payload, 0)
+		return nil
+	}
+
 	//flows := make(map[flow.Address]map[ledger.Path]uint64)
 
 	tStart := time.Now()
 
 	n := 0
+	batchMax := 1000
+
 	for address, updatedRegisters := range s.flows {
 
 		//debug := false
@@ -572,17 +582,19 @@ func (t *Transitions) BalanceFlow(s *State) error {
 				return fmt.Errorf("cannot write flow registers for account %x", address)
 			}
 		}
-		if n%1000 == 0 {
-			log.Debug().Dur("elapsed", time.Since(tStart)).Msgf("Balanced flow for %d accounts", n)
-			tStart = time.Now()
-		}
-
 		n++
+
+		delete(s.flows, address)
+
+		if n >= batchMax {
+			log.Debug().Dur("elapsed", time.Since(tStart)).Msgf("Balanced flow for %d accounts", n)
+			break
+		}
 	}
 
 	tDur := time.Since(tStart)
 
-	log.Info().Int("registers", len(s.flows)).Dur("elapsed", tDur).Msg("balanced all Flow vaults for finalized block")
+	log.Info().Int("remaining", len(s.flows)).Dur("elapsed", tDur).Msgf("balanced %d Flow vaults for finalized block", n)
 
 	// skip saving registers for testing
 	//s.status = StatusMap

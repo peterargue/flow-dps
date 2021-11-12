@@ -118,16 +118,15 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 
 		if helpers.IsDebugAccount(address, helpers.DebugBalance) {
 			debug = true
+			fmt.Printf("In IndexFlowRegistersForHeight, about to query previous registers for %s at %d\n", address.String(), height)
 		}
-		fmt.Printf("In IndexFlowRegistersForHeight, about to query previous registers for %s at %d\n", address.String(), height)
 
 		var previousRegisters map[ledger.Path]uint64
 
 		err := l.LookupFlowRegistersForHeight(address, height-1, &previousRegisters)(tx)
 
-		fmt.Printf("In IndexFlowRegistersForHeight, after query previous registers for %s at %d, err = %s\n", address.String(), height, err)
-
 		if debug {
+			fmt.Printf("In IndexFlowRegistersForHeight, after query previous registers for %s at %d, err = %s\n", address.String(), height, err)
 			fmt.Printf("Address %s\n", address)
 			fmt.Printf("Updated registers:\n")
 			for path, b := range updatedRegisters {
