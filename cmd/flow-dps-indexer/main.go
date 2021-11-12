@@ -54,12 +54,13 @@ func run() int {
 
 	// Command line parameter initialization.
 	var (
-		flagCheckpoint string
-		flagData       string
-		flagIndex      string
-		flagLevel      string
-		flagTrie       string
-		flagSkip       bool
+		flagCheckpoint    string
+		flagData          string
+		flagIndex         string
+		flagLevel         string
+		flagTrie          string
+		flagSkipRegisters bool
+		flagSkipFlow      bool
 	)
 
 	pflag.StringVarP(&flagCheckpoint, "checkpoint", "c", "", "path to root checkpoint file for execution state trie")
@@ -67,7 +68,8 @@ func run() int {
 	pflag.StringVarP(&flagIndex, "index", "i", "index", "path to database directory for state index")
 	pflag.StringVarP(&flagLevel, "level", "l", "info", "log output level")
 	pflag.StringVarP(&flagTrie, "trie", "t", "", "path to data directory for execution state ledger")
-	pflag.BoolVarP(&flagSkip, "skip", "s", false, "skip indexing of execution state ledger registers")
+	pflag.BoolVarP(&flagSkipRegisters, "skip-registers", "r", false, "skip indexing of execution state ledger registers")
+	pflag.BoolVarP(&flagSkipFlow, "skip-flow", "f", false, "skip detecting and indexin registers containing Flow vaults")
 
 	pflag.Parse()
 
@@ -180,7 +182,8 @@ func run() int {
 
 	transitions := mapper.NewTransitions(log, load, disk, feed, read, write,
 		mapper.WithBootstrapState(bootstrap),
-		mapper.WithSkipRegisters(flagSkip),
+		mapper.WithSkipRegisters(flagSkipRegisters),
+		mapper.WithSkipFlow(flagSkipFlow),
 	)
 	forest := forest.New()
 	state := mapper.EmptyState(forest)

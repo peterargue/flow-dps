@@ -22,6 +22,7 @@ import (
 var DefaultConfig = Config{
 	BootstrapState: false,
 	SkipRegisters:  false,
+	SkipFlow:       false,
 	WaitInterval:   100 * time.Millisecond,
 }
 
@@ -29,6 +30,7 @@ var DefaultConfig = Config{
 type Config struct {
 	BootstrapState bool
 	SkipRegisters  bool
+	SkipFlow       bool
 	WaitInterval   time.Duration
 }
 
@@ -49,6 +51,13 @@ func WithBootstrapState(bootstrap bool) Option {
 func WithSkipRegisters(skip bool) Option {
 	return func(cfg *Config) {
 		cfg.SkipRegisters = skip
+	}
+}
+
+// WithSkipFlow makes the mapper skip finding and indexing registers containing Flow vaults
+func WithSkipFlow(skip bool) Option {
+	return func(cfg *Config) {
+		cfg.SkipFlow = skip
 	}
 }
 

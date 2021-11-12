@@ -390,10 +390,10 @@ func (t *Transitions) CollectRegisters(s *State) error {
 		return fmt.Errorf("invalid status for collecting registers (%s)", s.status)
 	}
 
-	// If indexing payloads is disabled, we can bypass collection and indexing
+	// If both indexing payloads and Flow is disabled, we can bypass collection and indexing
 	// of payloads and just go straight to forwarding the height to the next
 	// finalized block.
-	if t.cfg.SkipRegisters {
+	if t.cfg.SkipRegisters && t.cfg.SkipFlow {
 		s.status = StatusForward
 		return nil
 	}
@@ -451,8 +451,12 @@ func (t *Transitions) CollectRegisters(s *State) error {
 
 	// At this point, we have collected all the payloads, so we go to the next
 	// step, where we will index them.
-	//s.status = StatusMap
-	s.status = StatusFindFlow
+	if !t.cfg.SkipFlow {
+		s.status = StatusFindFlow
+	} else {
+		s.status = StatusMap
+	}
+
 	return nil
 }
 
@@ -461,14 +465,6 @@ func (t *Transitions) FindFlow(s *State) error {
 	log := t.log.With().Uint64("height", s.height).Logger()
 	if s.status != StatusFindFlow {
 		return fmt.Errorf("invalid status for collecting registers (%s)", s.status)
-	}
-
-	// If indexing payloads is disabled, we can bypass collection and indexing
-	// of payloads and just go straight to forwarding the height to the next
-	// finalized block.
-	if t.cfg.SkipRegisters {
-		s.status = StatusForward
-		return nil
 	}
 
 	log.Debug().Msgf("About to find FLOW in %d registers", len(s.registers))
@@ -505,14 +501,14 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	if len(s.flows) == 0 {
 		log.Debug().Msg("All flow balanced")
-		// skip saving registers for testing
-		//s.status = StatusMap
-		s.status = StatusForward
+		if t.cfg.SkipRegisters {
+			s.status = StatusForward
+		} else {
+			s.status = StatusMap
+		}
 		s.registers = make(map[ledger.Path]*ledger.Payload, 0)
 		return nil
 	}
-
-	//flows := make(map[flow.Address]map[ledger.Path]uint64)
 
 	tStart := time.Now()
 
@@ -521,62 +517,6 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	for address, updatedRegisters := range s.flows {
 
-		//debug := false
-		//
-		//if helpers.IsDebugAccount(address) {
-		//	debug = true
-		//}
-		//
-		//previousRegisters, err := t.read.FlowRegisters(address, s.height-1)
-		//
-		//if debug {
-		//	fmt.Printf("Address %s\n", address)
-		//	fmt.Printf("Updated registers:\n")
-		//	for path, b := range updatedRegisters {
-		//		fmt.Printf("U %x => %d\n", path[:], b)
-		//	}
-		//	fmt.Printf("previous regisers for %d\n", s.height-1)
-		//	fmt.Printf("err = %s\n", err)
-		//	for path, b := range previousRegisters {
-		//		fmt.Printf("P %x => %d\n", path[:], b)
-		//	}
-		//}
-		//
-		//if errors.Is(err, badger.ErrKeyNotFound) {
-		//	previousRegisters = make(map[ledger.Path]uint64, 0)
-		//} else if err != nil {
-		//	return fmt.Errorf("error while retrieving previous flow registers for account %s: %w", address, err)
-		//}
-		//
-		//for path, _ := range previousRegisters {
-		//	newBalance, has := updatedRegisters[path]
-		//	if has {
-		//		previousRegisters[path] = newBalance
-		//		delete(updatedRegisters, path)
-		//		if newBalance == 0 {
-		//			delete(previousRegisters, path)
-		//		}
-		//	}
-		//}
-		////if debug {
-		////	fmt.Printf("updated existing registers\n")
-		////	for path, b := range previousRegisters {
-		////		fmt.Printf("UE %x => %d\n", path[:], b)
-		////	}
-		////}
-		//for path, newBalance := range updatedRegisters {
-		//	if newBalance > 0 { // ignore empty vaults
-		//		previousRegisters[path] = newBalance
-		//	}
-		//}
-		//if debug {
-		//	fmt.Printf("updated new registers\n")
-		//	for path, b := range previousRegisters {
-		//		fmt.Printf("F %x => %d\n", path[:], b)
-		//	}
-		//}
-
-		//err = t.write.FlowRegisters(address, s.height, previousRegisters)
 		if len(updatedRegisters) > 0 {
 			err := t.write.FlowRegisters(address, s.height, updatedRegisters)
 			if err != nil {
