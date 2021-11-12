@@ -124,7 +124,9 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 
 		var previousRegisters map[ledger.Path]uint64
 
-		err := l.LookupFlowRegistersForHeight(address, height, &previousRegisters)(tx)
+		err := l.LookupFlowRegistersForHeight(address, height-1, &previousRegisters)(tx)
+
+		fmt.Printf("Found old registers for %d\n", height)
 
 		if debug {
 			fmt.Printf("Address %s\n", address)
