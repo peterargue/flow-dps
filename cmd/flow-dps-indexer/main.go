@@ -143,7 +143,7 @@ func run() int {
 	// We explicitly disable flushing at regular intervals to improve throughput
 	// of badger transactions when indexing from static on-disk data.
 	write := index.NewWriter(indexDB, storage,
-		index.WithFlushInterval(0),
+		index.WithFlushInterval(time.Second*5),
 	)
 	defer func() {
 		err := write.Close()
