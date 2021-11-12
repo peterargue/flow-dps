@@ -567,11 +567,12 @@ func (t *Transitions) BalanceFlow(s *State) error {
 		//}
 
 		//err = t.write.FlowRegisters(address, s.height, previousRegisters)
-		err := t.write.FlowRegisters(address, s.height, updatedRegisters)
-		if err != nil {
-			return fmt.Errorf("cannot write flow registers for account %x", address)
+		if len(updatedRegisters) > 0 {
+			err := t.write.FlowRegisters(address, s.height, updatedRegisters)
+			if err != nil {
+				return fmt.Errorf("cannot write flow registers for account %x", address)
+			}
 		}
-
 		if n%100000 == 0 {
 			log.Debug().Msgf("Balanced flow for %d accounts", n)
 		}

@@ -114,7 +114,7 @@ func (l *Library) IndexSealsForHeight(height uint64, sealIDs []flow.Identifier) 
 func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint64, updatedRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
 	return func(tx *badger.Txn) error {
 
-		fmt.Printf("About to index flow regisers for %d\n", height)
+		fmt.Printf("About to index flow regisers for %s at %d\n", address.String(), height)
 
 		debug := false
 
@@ -126,7 +126,7 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 
 		err := l.LookupFlowRegistersForHeight(address, height-1, &previousRegisters)(tx)
 
-		fmt.Printf("Found old registers for %d\n", height)
+		fmt.Printf("Found old registers for %s at %d\n", address, height)
 
 		if debug {
 			fmt.Printf("Address %s\n", address)
