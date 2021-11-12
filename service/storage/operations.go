@@ -112,8 +112,10 @@ func (l *Library) IndexSealsForHeight(height uint64, sealIDs []flow.Identifier) 
 }
 
 func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint64, updatedRegisters map[ledger.Path]uint64) func(*badger.Txn) error {
-
 	return func(tx *badger.Txn) error {
+
+		fmt.Printf("About to index flow regisers for %d\n", height)
+
 		debug := false
 
 		if helpers.IsDebugAccount(address) {
