@@ -503,7 +503,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	log.Debug().Msgf("About to balance FLOW for %d accounts", len(s.flows))
 
-	flows := make(map[flow.Address]map[ledger.Path]uint64)
+	//flows := make(map[flow.Address]map[ledger.Path]uint64)
 
 	tStart := time.Now()
 
@@ -582,7 +582,7 @@ func (t *Transitions) BalanceFlow(s *State) error {
 
 	tDur := time.Since(tStart)
 
-	log.Info().Int("registers", len(flows)).Dur("elapsed", tDur).Msg("balanced all Flow vaults for finalized block")
+	log.Info().Int("registers", len(s.flows)).Dur("elapsed", tDur).Msg("balanced all Flow vaults for finalized block")
 
 	// skip saving registers for testing
 	//s.status = StatusMap

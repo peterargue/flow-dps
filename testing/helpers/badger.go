@@ -21,13 +21,28 @@ func InMemoryDB(t *testing.T) *badger.DB {
 	return db
 }
 
+type DebugMode uint8
+
+const (
+	DebugFind DebugMode = iota
+	DebugBalance
+)
+
 //accounts of interests for debug
 var DebugAccounts = []string{
 	"8624b52f9ddcd04a",
 	"d796ff17107bbff6",
 }
 
-func IsDebugAccount(address flow.Address) bool {
+var Modes = map[DebugMode]bool{
+	DebugFind:    false,
+	DebugBalance: true,
+}
+
+func IsDebugAccount(address flow.Address, mode DebugMode) bool {
+	if Modes[mode] == false {
+		return false
+	}
 	for _, account := range DebugAccounts {
 		if address.Hex() == account {
 			return true
