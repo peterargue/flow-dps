@@ -118,6 +118,7 @@ func (l *Library) IndexFlowRegistersForHeight(address flow.Address, height uint6
 
 		if helpers.IsDebugAccount(address) {
 			debug = true
+			fmt.Printf("about to query previous registers for %s at %d\n", address.String(), height)
 		}
 
 		var previousRegisters map[ledger.Path]uint64
