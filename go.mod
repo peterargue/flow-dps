@@ -54,7 +54,6 @@ require (
 	github.com/ethereum/go-ethereum v1.9.13 // indirect
 	github.com/flynn/noise v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/fxamacker/circlehash v0.0.2 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
@@ -64,6 +63,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
@@ -156,7 +156,6 @@ require (
 	github.com/multiformats/go-multihash v0.0.15 // indirect
 	github.com/multiformats/go-multistream v0.2.2 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
-	github.com/onflow/atree v0.1.0-beta1.0.20211004182016-e18ec57f5888 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/contracts v0.7.9 // indirect
 	github.com/onflow/flow-core-contracts/lib/go/templates v0.7.9 // indirect
 	github.com/onflow/flow-ft/lib/go/contracts v0.5.0 // indirect
@@ -191,7 +190,6 @@ require (
 	github.com/whyrusleeping/multiaddr-filter v0.0.0-20160516205228-e903e4adabd7 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/zeebo/blake3 v0.2.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
